@@ -419,8 +419,9 @@ Mario.BackgroundGenerator = (() => class {
         if (this.Distant) {
           let e = x % 2;
           let d = y - 1;
-          if (d > 2 && d < 5) d = 2;
-          else if (d >= 5) d -= 2;
+          if (d > 2)
+            if (d < 5) d = 2;
+            else d -= 2;
           if (d < 0) {
             e = 0;
             d = 5;
@@ -706,8 +707,7 @@ Mario.Character = (() => class extends Mario.NotchSprite {
           this.Facing *= -1;
         } else if (this.JumpTime > 0) {
           this.Xa += this.XJumpSpeed;
-          this.Ya = this.JumpTime * this.YJumpSpeed;
-          this.JumpTime--;
+          this.Ya = this.JumpTime-- * this.YJumpSpeed;
         }
       } else this.JumpTime = 0;
       if (Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.LEFT) && !this.Ducking) {
