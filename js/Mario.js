@@ -680,7 +680,7 @@ Mario.Character = (() => class extends Mario.NotchSprite {
       this.WasOnGround = this.OnGround;
       let a = Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.A) ? 1.2 : .6;
       if (this.OnGround)
-        this.Ducking = Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.Down) && this.Large;
+        this.Ducking = Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.DOWN) && this.Large;
       if (this.Xa > 2) this.Facing = 1;
       if (this.Xa < -2) this.Facing = -1;
       if (Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.S) || this.JumpTime < 0 && !this.OnGround && !this.Sliding) {
@@ -710,17 +710,17 @@ Mario.Character = (() => class extends Mario.NotchSprite {
           this.JumpTime--;
         }
       } else this.JumpTime = 0;
-      if (Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.Left) && !this.Ducking) {
+      if (Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.LEFT) && !this.Ducking) {
         if (this.Facing === 1) this.Sliding = !1;
         this.Xa -= a;
         if (this.JumpTime >= 0) this.Facing = -1;
       }
-      if (Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.Right) && !this.Ducking) {
+      if (Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.RIGHT) && !this.Ducking) {
         if (this.Facing === -1) this.Sliding = !1;
         this.Xa += a;
         if (this.JumpTime >= 0) this.Facing = 1;
       }
-      if (!Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.Left) && !Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.Right) || this.Ducking || this.Ya < 0 || this.OnGround) this.Sliding = !1;
+      if (!Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.LEFT) && !Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.RIGHT) || this.Ducking || this.Ya < 0 || this.OnGround) this.Sliding = !1;
       if (Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.A) && this.CanShoot && this.Fire && this.World.FireballsOnScreen < 2) {
         Enjine.Resources.PlaySound("fireball");
         this.World.AddSprite(new Mario.Fireball(this.World, this.X + this.Facing * 6, this.Y - 20, this.Facing));
@@ -2841,10 +2841,10 @@ Mario.MapState = (() => {
             this.LevelType = type;
           }
           this.CanEnterLevel = !Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.S);
-          Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.Left) && this.TryWalking(-1, 0);
-          Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.Right) && this.TryWalking(1, 0);
-          Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.Up) && this.TryWalking(0, -1);
-          Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.Down) && this.TryWalking(0, 1);
+          Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.LEFT) && this.TryWalking(-1, 0);
+          Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.RIGHT) && this.TryWalking(1, 0);
+          Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.UP) && this.TryWalking(0, -1);
+          Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.DOWN) && this.TryWalking(0, 1);
         }
         this.WaterSprite.Update(sprite);
         this.DecoSprite.Update(sprite);
