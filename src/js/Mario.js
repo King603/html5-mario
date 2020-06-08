@@ -1,3 +1,687 @@
+class Level {
+  /**
+   * 关卡类
+   * @param {Number} width 宽
+   * @param {Number} height 高
+   */
+  constructor(width, height) {
+    // 关卡界面大小
+    this.Width = width;
+    this.Height = height;
+    // 出口位置
+    this.ExitY = this.ExitX = 10;
+    // 界面
+    this.Map = [];
+    // 数据
+    this.Data = [];
+    // 精灵图模板
+    this.SpriteTemplates = [];
+    // 添加界面信息
+    for (let x = 0; x < this.Width; x++) {
+      this.Map[x] = [];
+      this.Data[x] = [];
+      this.SpriteTemplates[x] = [];
+      for (let y = 0; y < this.Height; y++) {
+        this.Map[x][y] = 0;
+        this.Data[x][y] = 0;
+        this.SpriteTemplates[x][y] = null;
+      }
+    }
+  }
+  // 更新数据
+  Update() {
+    for (let x = 0; x < this.Width; x++)
+      for (let y = 0; y < this.Height; y++)
+        if (this.Data[x][y] > 0) this.Data[x][y]--;
+  }
+  /**
+   * 获取方块顶部
+   * @param {Number} x X坐标
+   * @param {Number} y Y坐标
+   * @returns {Number}
+   */
+  GetBlockCapped(x, y) {
+    x = Math.max(x, 0);
+    y = Math.max(y, 0);
+    x >= this.Width && (x = this.Width - 1);
+    y >= this.Height && (y = this.Height - 1);
+    return this.Map[x][y];
+  }
+  /**
+   * 获取方块
+   * @param {Number} x X坐标
+   * @param {Number} y Y坐标
+   * @returns {Number}
+   */
+  GetBlock(x, y) {
+    x < 0 && (x = 0);
+    x = Math.max(x, 0);
+    if (y < 0) return 0;
+    x >= this.Width && (x = this.Width - 1);
+    y >= this.Height && (y = this.Height - 1);
+    return this.Map[x][y];
+  }
+  /**
+   * 设置方块
+   * @param {Number} x X坐标
+   * @param {Number} y Y坐标
+   * @param {Element} ele 元素
+   */
+  SetBlock(x, y, ele) {
+    x < 0 || y < 0 || x >= this.Width || y >= this.Height || (this.Map[x][y] = ele);
+  }
+  /**
+   * 设置方块数据
+   * @param {Number} x X坐标
+   * @param {Number} y Y坐标
+   * @param {Element} ele 元素 
+   */
+  SetBlockData(x, y, ele) {
+    x < 0 || y < 0 || x >= this.Width || y >= this.Height || (this.Data[x][y] = ele);
+  }
+  /**
+   * 判断阻塞
+   * @param {Number} x X坐标
+   * @param {Number} y Y坐标
+   * @param {Element} ele 元素 
+   * @returns {Number}
+   */
+  IsBlocking(x, y, ele) {
+    x = this.GetBlock(x, y);
+    y = (Mario.Tile.Behaviors[x & 255] & Mario.Tile.BlockAll) > 0;
+    y |= ele > 0 && (Mario.Tile.Behaviors[x & 255] & Mario.Tile.BlockUpper) > 0;
+    y |= ele < 0 && (Mario.Tile.Behaviors[x & 255] & Mario.Tile.BlockLower) > 0;
+    return y;
+  }
+  /**
+   * 获取Sprite模板
+   * @param {Number} x X坐标
+   * @param {Number} y Y坐标
+   * @returns {Element}
+   */
+  GetSpriteTemplate(x, y) {
+    return x < 0 || y < 0 || x >= this.Width || y >= this.Height ? null : this.SpriteTemplates[x][y];
+  }
+  /**
+   * 设置Sprite模板
+   * @param {Number} x X坐标
+   * @param {Number} y Y坐标
+   * @param {Element} ele 元素
+   */
+  SetSpriteTemplate(x, y, ele) {
+    x < 0 || y < 0 || x >= this.Width || y >= this.Height || (this.SpriteTemplates[x][y] = ele);
+  }
+}
+
+class NotchSprite extends Drawable {
+  /**
+   * 裁剪精灵图
+   * @param {Element} img 
+   */
+  constructor(img) {
+    super();
+    this.YPicO = this.XPicO = this.YPic = this.XPic = this.Ya = this.Xa = this.Y = this.X = this.YOld = this.XOld = 0;
+    this.PicHeight = this.PicWidth = 32;
+    this.YFlip = this.XFlip = !1;
+    this.Visible = !0;
+    this.Image = img;
+    this.Delta = 0;
+    this.SpriteTemplate = null;
+    this.Layer = 1;
+  }
+  /**
+   * 布局
+   * @param {Object} ctx 
+   */
+  Draw(ctx) {
+    if (this.Visible) {
+      let x = (this.XOld + (this.X - this.XOld) * this.Delta | 0) - this.XPicO;
+      let y = (this.YOld + (this.Y - this.YOld) * this.Delta | 0) - this.YPicO;
+      ctx.save();
+      ctx.scale(
+        this.XFlip ? -1 : 1,
+        this.YFlip ? -1 : 1
+      );
+      ctx.translate(
+        this.XFlip ? -320 : 0,
+        this.YFlip ? -240 : 0
+      );
+      ctx.drawImage(
+        this.Image,
+        this.XPic * this.PicWidth,
+        this.YPic * this.PicHeight,
+        this.PicWidth,
+        this.PicHeight,
+        this.XFlip ? 320 - x - this.PicWidth : x,
+        this.YFlip ? 240 - y - this.PicHeight : y,
+        this.PicWidth,
+        this.PicHeight
+      );
+      ctx.restore();
+    }
+  }
+  /**
+   * 更新
+   * @param {Number}} delta 差值
+   */
+  Update(delta) {
+    this.XOld = this.X;
+    this.YOld = this.Y;
+    this.Move();
+    this.Delta = delta;
+  }
+  // 更新没有移动
+  UpdateNoMove() {
+    this.XOld = this.X;
+    this.YOld = this.Y;
+    this.Delta = 0;
+  }
+  // 移动
+  Move() {
+    this.X += this.Xa;
+    this.Y += this.Ya;
+  }
+  /**
+   * 获取水平位置
+   * @param {Number} size 单位尺寸
+   * @returns {Number}
+   */
+  GetX(size) {
+    return (this.XOld + (this.X - this.XOld) * size | 0) - this.XPicO;
+  }
+  /**
+   * 获取垂直位置
+   * @param {Number} size 单位尺寸
+   * @returns {Number}
+   */
+  GetY(size) {
+    return (this.YOld + (this.Y - this.YOld) * size | 0) - this.YPicO;
+  }
+  // 碰撞检测
+  CollideCheck() { }
+  // 凹凸检查
+  BumpCheck() { }
+  // 释放
+  Release() { }
+  /**
+   * 炮弹碰撞检验
+   * @returns {Boolean}
+   */
+  ShellCollideCheck() {
+    return !1;
+  }
+  /**
+   * 火球碰撞检查
+   * @returns {Boolean}
+   */
+  FireballCollideCheck() {
+    return !1;
+  }
+}
+
+class Enemy extends NotchSprite {
+  constructor(world, x, y, facing, type, winged) {
+    super();
+    this.AirInertia = this.GroundInertia = .89;
+    this.RunTime = 0;
+    this.MayJump = this.OnGround = !1;
+    this.YJumpSpeed = this.XJumpSpeed = this.JumpTime = 0;
+    this.Width = 4;
+    this.Height = 24;
+    this.DeadTime = 0;
+    this.FlyDeath = !1;
+    this.WingTime = 0;
+    this.NoFireballDeath = !1;
+    this.X = x;
+    this.Y = y;
+    this.World = world;
+    this.Type = type;
+    this.Winged = winged;
+    this.Image = Enjine.Resources.Images.enemies;
+    this.XPicO = 8;
+    this.YPicO = 31;
+    this.AvoidCliffs = this.Type === Mario.Enemy.RedKoopa;
+    this.NoFireballDeath = this.Type === Mario.Enemy.Spiky;
+    this.YPic = this.Type;
+    if (this.YPic > 1) this.Height = 12;
+    this.Facing = facing;
+    if (this.Facing === 0) this.Facing = 1;
+    this.PicWidth = 16;
+  }
+  CollideCheck() {
+    if (this.DeadTime === 0) {
+      let a = Mario.MarioCharacter.X - this.X, b = Mario.MarioCharacter.Y - this.Y;
+      if (a > -this.Width * 2 - 4 && a < this.Width * 2 + 4 && b > -this.Height && b < Mario.MarioCharacter.Height)
+        if (this.Type !== Mario.Enemy.Spiky && Mario.MarioCharacter.Ya > 0 && b <= 0 && (!Mario.MarioCharacter.OnGround || !Mario.MarioCharacter.WasOnGround))
+          if (Mario.MarioCharacter.Stomp(this), this.Winged) {
+            this.Winged = !1;
+            this.Ya = 0;
+          } else {
+            this.YPicO = 7;
+            this.PicHeight = 8;
+            if (this.SpriteTemplate !== null)
+              this.SpriteTemplate.IsDead = !0;
+            this.DeadTime = 10;
+            this.Winged = !1;
+            switch (this.Type) {
+              case Mario.Enemy.RedKoopa: this.World.AddSprite(new Mario.Shell(this.World, this.X, this.Y, 0)); break;
+              case this.Type === Mario.Enemy.GreenKoopa: this.World.AddSprite(new Mario.Shell(this.World, this.X, this.Y, 1)); break;
+            }
+          }
+        else
+          Mario.MarioCharacter.GetHurt();
+    }
+  }
+  Move() {
+    this.WingTime++;
+    if (this.DeadTime > 0) {
+      if (--this.DeadTime === 0) {
+        this.DeadTime = 1;
+        for (let a = 0; a < 8; a++)
+          this.World.AddSprite(new Mario.Sparkle(
+            this.World,
+            (this.X + Math.random() * 16 - 8 | 0) + 4,
+            (this.Y - Math.random() * 8 | 0) + 4,
+            Math.random() * 2 - 1,
+            Math.random() * -1,
+            0, 1, 5
+          ));
+        this.World.RemoveSprite(this);
+      }
+      if (this.FlyDeath) {
+        this.X += this.Xa;
+        this.Y += this.Ya;
+        this.Ya *= .95;
+        this.Ya += 1;
+      }
+    }
+    else {
+      if (this.Xa > 2)
+        this.Facing = 1;
+      if (this.Xa < -2)
+        this.Facing = -1;
+      this.Xa = this.Facing * 1.75;
+      this.MayJump = this.OnGround;
+      this.XFlip = this.Facing === -1;
+      this.RunTime += Math.abs(this.Xa) + 5;
+      let a = (this.RunTime / 20 | 0) % 2;
+      this.OnGround || (a = 1);
+      if (!this.SubMove(this.Xa, 0))
+        this.Facing *= -1;
+      this.OnGround = !1;
+      this.SubMove(0, this.Ya);
+      this.Ya *= this.Winged ? .95 : .85;
+      this.Xa *= this.OnGround ? this.GroundInertia : this.AirInertia;
+      if (this.OnGround) {
+        if (this.Winged)
+          this.Ya = -10;
+      }
+      else
+        this.Ya += this.Winged ? .6 : 2;
+      this.Winged && (a = (this.WingTime / 4 | 0) % 2);
+      this.XPic = a;
+    }
+  }
+  SubMove(a, b) {
+    let c = !1;
+    while (a > 8) {
+      if (!this.SubMove(8, 0)) return !1;
+      a -= 8;
+    }
+    while (a < -8) {
+      if (!this.SubMove(-8, 0)) return !1;
+      a += 8;
+    }
+    while (b > 8) {
+      if (!this.SubMove(0, 8)) return !1;
+      b -= 8;
+    }
+    while (b < -8) {
+      if (!this.SubMove(0, -8)) return !1;
+      b += 8;
+    }
+    let x = this.X + a;
+    let y = this.Y + b;
+    if (b > 0 && (
+      this.IsBlocking(x - this.Width, y, a, 0) ||
+      this.IsBlocking(x + this.Width, y, a, 0) ||
+      this.IsBlocking(x - this.Width, y + 1, a, b) ||
+      this.IsBlocking(x + this.Width, y + 1, a, b)
+    )) c = !0;
+    if (b < 0 && (
+      this.IsBlocking(x, y - this.Height, a, b) || c ||
+      this.IsBlocking(x - this.Width, y - this.Height, a, b) || c ||
+      this.IsBlocking(x + this.Width, y - this.Height, a, b)
+    )) c = !0;
+    if (a > 0 && (
+      this.IsBlocking(x + this.Width, y - this.Height, a, b) ||
+      this.IsBlocking(x + this.Width, y - (this.Height / 2 | 0), a, b) ||
+      this.IsBlocking(x + this.Width, y, a, b) ||
+      (this.AvoidCliffs && this.OnGround && !this.World.Level.IsBlocking((this.X + this.Xa + this.Width) / 16 | 0, this.Y / 16 + 1 | 0, this.Xa, 1))
+    )) c = !0;
+    if (a < 0 && (
+      this.IsBlocking(x - this.Width, y - this.Height, a, b) ||
+      this.IsBlocking(x - this.Width, y - (this.Height / 2 | 0), a, b) ||
+      this.IsBlocking(x - this.Width, y, a, b) ||
+      (this.AvoidCliffs && this.OnGround && !this.World.Level.IsBlocking((this.X + this.Xa - this.Width) / 16 | 0, this.Y / 16 + 1 | 0, this.Xa, 1))
+    )) c = !0;
+    if (c) {
+      if (a < 0) {
+        this.X = ((this.X - this.Width) / 16 | 0) * 16 + this.Width;
+        this.Xa = 0;
+      } if (a > 0) {
+        this.X = ((this.X + this.Width) / 16 + 1 | 0) * 16 - this.Width - 1;
+        this.Xa = 0;
+      } if (b < 0) {
+        this.Y = ((this.Y - this.Height) / 16 | 0) * 16 + this.Height;
+        this.Ya = this.JumpTime = 0;
+      } if (b > 0) {
+        this.Y = ((this.Y - 1) / 16 + 1 | 0) * 16 - 1;
+        this.OnGround = !0;
+      }
+      return !1;
+    } else {
+      this.X += a;
+      this.Y += b;
+      return !0;
+    }
+  }
+  IsBlocking(a, b, c, e) {
+    a = a / 16 | 0;
+    b = b / 16 | 0;
+    if (a === this.X / 16 | 0 && b === this.Y / 16 | 0)
+      return !1;
+    return this.World.Level.IsBlocking(a, b, c, e);
+  }
+  ShellCollideCheck(a) {
+    if (this.DeadTime !== 0)
+      return !1;
+    let b = a.X - this.X, c = a.Y - this.Y;
+    if (b > -16 && b < 16 && c > -this.Height && c < a.Height) {
+      Enjine.Resources.PlaySound("kick");
+      this.Xa = a.Facing * 2;
+      this.Ya = -5;
+      this.FlyDeath = !0;
+      if (this.SpriteTemplate !== null)
+        this.SpriteTemplate.IsDead = !0;
+      this.DeadTime = 100;
+      this.Winged = !1;
+      return this.YFlip = !0;
+    }
+    return !1;
+  }
+  FireballCollideCheck(a) {
+    if (this.DeadTime !== 0)
+      return !1;
+    let b = a.X - this.X, c = a.Y - this.Y;
+    if (b > -16 && b < 16 && c > -this.Height && c < a.Height) {
+      if (this.NoFireballDeath)
+        return !0;
+      Enjine.Resources.PlaySound("kick");
+      this.Xa = a.Facing * 2;
+      this.Ya = -5;
+      this.FlyDeath = !0;
+      if (this.SpriteTemplate !== null)
+        this.SpriteTemplate.IsDead = !0;
+      this.DeadTime = 100;
+      this.Winged = !1;
+      return this.YFlip = !0;
+    }
+  }
+  BumpCheck(a, b) {
+    if (this.DeadTime === 0 && this.X + this.Width > a * 16 && this.X - this.Width < a * 16 + 16 && b === (this.Y - 1) / 16 | 0) {
+      Enjine.Resources.PlaySound("kick");
+      this.Xa = -Mario.MarioCharacter.Facing * 2;
+      this.Ya = -5;
+      this.FlyDeath = !0;
+      if (this.SpriteTemplate !== null)
+        this.SpriteTemplate.IsDead = !0;
+      this.DeadTime = 100;
+      this.Winged = !1;
+      this.YFlip = !0;
+    }
+  }
+  SubDraw = super.Draw;
+  Draw(a, b) {
+    if (this.Winged) {
+      let c = (this.XOld + (this.X - this.XOld) * this.Delta | 0) - this.XPicO;
+      let e = (this.YOld + (this.Y - this.YOld) * this.Delta | 0) - this.YPicO;
+      if (this.Type !== Mario.Enemy.RedKoopa && this.Type !== Mario.Enemy.GreenKoopa) {
+        this.XFlip = !this.XFlip;
+        a.save();
+        a.scale(this.XFlip ? -1 : 1, this.YFlip ? -1 : 1);
+        a.translate(this.XFlip ? -320 : 0, this.YFlip ? -240 : 0);
+        a.drawImage(
+          this.Image,
+          (this.WingTime / 4 | 0) % 2 * 16,
+          128,
+          16,
+          32,
+          this.XFlip ? 320 - c - 24 : c - 8,
+          this.YFlip ? 240 - e - 32 : e - 8,
+          16,
+          32
+        );
+        a.restore();
+        this.XFlip = !this.XFlip;
+      }
+    }
+    this.SubDraw(a, b);
+    if (this.Winged) {
+      let c = (this.XOld + (this.X - this.XOld) * this.Delta | 0) - this.XPicO;
+      let e = (this.YOld + (this.Y - this.YOld) * this.Delta | 0) - this.YPicO;
+      a.save();
+      a.scale(this.XFlip ? -1 : 1, this.YFlip ? -1 : 1);
+      a.translate(this.XFlip ? -320 : 0, this.YFlip ? -240 : 0);
+      a.drawImage(this.Image, (this.WingTime / 4 | 0) % 2 * 16, 128, 16, 32, this.XFlip ? 320 - c - 24 : c - 8, this.YFlip ? 240 - e - (this.Type === Mario.Enemy.RedKoopa && this.Type === Mario.Enemy.GreenKoopa ? 0 : 32) : e - 8, 16, 32);
+      a.restore();
+    }
+  }
+  RedKoopa = 0;
+  GreenKoopa = 1;
+  Goomba = 2;
+  Spiky = 3;
+  Flower = 4;
+}
+
+class Shell extends NotchSprite {
+  constructor(world, x, y, Ypic, Xpic = 4) {
+    super();
+    this.World = world;
+    this.X = x;
+    this.Y = y;
+    this.YPic = Ypic;
+    this.Image = Enjine.Resources.Images.enemies;
+    this.XPicO = 8;
+    this.YPicO = 31;
+    this.Width = 4;
+    this.Height = 12;
+    this.Facing = 0;
+    this.PicWidth = 16;
+    this.XPic = Xpic;
+    this.Ya = -5;
+    this.Dead = !1;
+    this.DeadTime = 0;
+    this.Carried = !1;
+    this.AirInertia = this.GroundInertia = .89;
+    this.OnGround = !1;
+    this.Anim = 0;
+  }
+  FireballCollideCheck(a) {
+    if (this.DeadTime !== 0)
+      return !1;
+    let x = a.X - this.X, y = a.Y - this.Y;
+    if (x > -16 && x < 16 && y > -this.Height && y < a.Height) {
+      if (this.Facing !== 0)
+        return !0;
+      Enjine.Resources.PlaySound("kick");
+      this.Xa = a.Facing * 2;
+      this.Ya = -5;
+      if (this.SpriteTemplate !== null)
+        this.SpriteTemplate.IsDead = !0;
+      this.DeadTime = 100;
+      return this.YFlip = !0;
+    } return !1;
+  }
+  CollideCheck() {
+    if (!this.Carried && !(this.Dead || this.DeadTime > 0)) {
+      let a = Mario.MarioCharacter.X - this.X, b = Mario.MarioCharacter.Y - this.Y;
+      if (a > -16 && a < 16 && b > -this.Height && b < Mario.MarioCharacter.Height) {
+        if (Mario.MarioCharacter.Ya > 0 && b <= 0 && (!Mario.MarioCharacter.OnGround || !Mario.MarioCharacter.WasOnGround)) {
+          Mario.MarioCharacter.Stomp(this);
+          if (this.Facing = this.Facing !== 0) this.Xa = 0;
+          else Mario.MarioCharacter.Facing;
+        } else if (this.Facing !== 0) {
+          Mario.MarioCharacter.GetHurt();
+        } else {
+          Mario.MarioCharacter.Kick(this);
+          this.Facing = Mario.MarioCharacter.Facing;
+        }
+      }
+    }
+  }
+  Move() {
+    if (this.Carried)
+      this.World.CheckShellCollide(this);
+    else if (this.DeadTime > 0) {
+      if (--this.DeadTime === 0) {
+        this.DeadTime = 1;
+        for (let n = 0; n < 8; n++)
+          this.World.AddSprite(new Mario.Sparkle((this.X + Math.random() * 16 - 8 | 0) + 4, (this.Y + Math.random() * 8 | 0) + 4, Math.random() * 2 - 1, Math.random() * -1, 0, 1, 5));
+        this.World.RemoveSprite(this);
+      }
+      this.X += this.Xa;
+      this.Y += this.Ya;
+      this.Ya *= .95;
+      this.Ya += 1;
+    }
+    else {
+      this.Facing !== 0 && this.Anim++;
+      if (this.Xa > 2)
+        this.Facing = 1;
+      if (this.Xa < -2)
+        this.Facing = -1;
+      this.Xa = this.Facing * 11;
+      this.Facing !== 0 && this.World.CheckShellCollide(this);
+      this.XFlip = this.Facing === -1;
+      this.XPic = (this.Anim / 2 | 0) % 4 + 3;
+      if (!this.SubMove(this.Xa, 0)) {
+        Enjine.Resources.PlaySound("bump");
+        this.Facing = -this.Facing;
+      }
+      this.OnGround = !1;
+      this.SubMove(0, this.Ya);
+      this.Ya *= .85;
+      this.Xa *= this.OnGround ? this.GroundInertia : this.AirInertia;
+      this.OnGround || (this.Ya += 2);
+    }
+  }
+  SubMove(a, b) {
+    let c = !1;
+    while (a > 8) {
+      if (!this.SubMove(8, 0)) return !1;
+      a -= 8;
+    }
+    while (a < -8) {
+      if (!this.SubMove(-8, 0)) return !1;
+      a += 8;
+    }
+    while (b > 8) {
+      if (!this.SubMove(0, 8)) return !1;
+      b -= 8;
+    }
+    while (b < -8) {
+      if (!this.SubMove(0, -8)) return !1;
+      b += 8;
+    }
+    let x = this.X + a;
+    let y = this.Y + b;
+    if (b > 0 && (
+      this.IsBlocking(x - this.Width, y + b, a, 0) ||
+      this.IsBlocking(x + this.Width, y + b, a, 0) ||
+      this.IsBlocking(x - this.Width, y + b + 1, a, b) ||
+      this.IsBlocking(x + this.Width, y + b + 1, a, b)
+    )) c = !0;
+    if (b < 0 && (
+      this.IsBlocking(x, y + b - this.Height, a, b) || c ||
+      this.IsBlocking(x - this.Width, y + b - this.Height, a, b) || c ||
+      this.IsBlocking(x + this.Width, y + b - this.Height, a, b)
+    )) c = !0;
+    if (a > 0 && (
+      this.IsBlocking(x + this.Width, y + b - this.Height, a, b) ||
+      this.IsBlocking(x + this.Width, y + b - (this.Height / 2 | 0), a, b) ||
+      this.IsBlocking(x + this.Width, y + b, a, b)
+    )) c = !0;
+    if (a < 0 && (
+      this.IsBlocking(x - this.Width, y + b - this.Height, a, b) ||
+      this.IsBlocking(x - this.Width, y + b - (this.Height / 2 | 0), a, b) ||
+      this.IsBlocking(x - this.Width, y + b, a, b)
+    )) c = !0;
+    if (c) {
+      if (a < 0) {
+        this.X = ((this.X - this.Width) / 16 | 0) * 16 + this.Width;
+        this.Xa = 0;
+      } else if (a > 0) {
+        this.X = ((this.X + this.Width) / 16 + 1 | 0) * 16 - this.Width - 1;
+        this.Xa = 0;
+      }
+      if (b < 0) {
+        this.Y = ((this.Y - this.Height) / 16 | 0) * 16 + this.Height;
+        this.Ya = 0;
+      } else if (b > 0) {
+        this.Y = ((this.Y - 1) / 16 + 1 | 0) * 16 - 1;
+        this.OnGround = !0;
+      }
+      return !1;
+    }
+    else {
+      this.X += a;
+      this.Y += b;
+      return !0;
+    }
+  }
+  IsBlocking(a, b, c, e) {
+    a = a / 16 | 0;
+    b = b / 16 | 0;
+    if (a === (this.X / 16 | 0) && b === (this.Y / 16 | 0))
+      return !1;
+    let d = this.World.Level.IsBlocking(a, b, c, e);
+    if (d && e === 0 && c !== 0) this.World.Bump(a, b, !0);
+    return d;
+  }
+  BumpCheck(a, b) {
+    if (this.X + this.Width > a * 16 && this.X - this.Width < a * 16 + 16 && b === ((this.Y - 1) / 16 | 0)) {
+      this.Facing = -Mario.MarioCharacter.Facing;
+      this.Ya = -10;
+    }
+  }
+  Die() {
+    this.Dead = !0;
+    this.Carried = !1;
+    this.Xa = -this.Facing * 2;
+    this.Ya = -5;
+    this.DeadTime = 100;
+  }
+  ShellCollideCheck(a) {
+    if (this.DeadTime !== 0)
+      return !1;
+    let x = a.X - this.X, y = a.Y - this.Y;
+    if (x > -16 && x < 16 && y > -this.Height && y < a.Height) {
+      Enjine.Resources.PlaySound("kick");
+      if (Mario.MarioCharacter.Carried === a || Mario.MarioCharacter.Carried === this)
+        Mario.MarioCharacter.Carried = null;
+      this.Die();
+      a.Die();
+      return !0;
+    } return !1;
+  }
+  Release() {
+    this.Carried = !1;
+    this.Facing = Mario.MarioCharacter.Facing;
+    this.X += this.Facing * 8;
+  }
+}
+
 let Mario = {
   // 裁剪精灵图
   SpriteCuts: {
@@ -174,11 +858,11 @@ let Mario = {
     // 大炮
     Cannons: 4
   },
-  // 图部件
+  /** 图部件 */
   MapTile: {
-    // 草
+    /** 草 */
     Grass: 0,
-    // 水
+    /** 水 */
     Water: 1,
     // 关卡
     Level: 2,
@@ -186,714 +870,594 @@ let Mario = {
     Road: 3,
     // 装饰
     Decoration: 4
-  }
-};
-Mario.Level = (() => {
-  return class {
+  },
+  Level,
+  BackgroundGenerator: class {
     /**
-     * 关卡类
+     * 背景信号发生器
      * @param {Number} width 宽
      * @param {Number} height 高
+     * @param {Boolean} distant 
+     * @param {ClassDecorator} type 引用类
      */
-    constructor(width, height) {
-      // 关卡界面大小
+    constructor(width, height, distant, type) {
       this.Width = width;
       this.Height = height;
-      // 出口位置
-      this.ExitY = this.ExitX = 10;
-      // 界面
-      this.Map = [];
-      // 数据
-      this.Data = [];
-      // 精灵图模板
-      this.SpriteTemplates = [];
-      // 添加界面信息
+      this.Distant = distant;
+      this.Type = type;
+    }
+    /**
+     * 属性设置
+     * @param {Number} width 宽
+     * @param {Number} height 高
+     * @param {Boolean} distant 
+     * @param {ClassDecorator} type 引用类
+     */
+    SetValues(width, height, distant, type) {
+      this.Width = width;
+      this.Height = height;
+      this.Distant = distant;
+      this.Type = type;
+    }
+    /**
+     * 创建关卡
+     * @returns {Level}
+     */
+    CreateLevel() {
+      let level = new Mario.Level(this.Width, this.Height);
+      let { Overground, Underground, Castle } = Mario.LevelType;
+      switch (this.Type) {
+        case Overground: this.GenerateOverground(level); break;
+        case Underground: this.GenerateUnderground(level); break;
+        case Castle: this.GenerateCastle(level); break;
+      }
+      return level;
+    }
+    /**
+     * 生成地面
+     * @param {Level} level 
+     */
+    GenerateOverground(level) {
+      let b = this.Distant ? 4 : 6,
+        c = this.Distant ? 2 : 1,
+        e = Math.floor(Math.random() * b) + c,
+        d = Math.floor(Math.random() * b) + c;
       for (let x = 0; x < this.Width; x++) {
-        this.Map[x] = [];
-        this.Data[x] = [];
-        this.SpriteTemplates[x] = [];
+        for (e = d; e === d; d = Math.floor(Math.random() * b) + c);
         for (let y = 0; y < this.Height; y++) {
-          this.Map[x][y] = 0;
-          this.Data[x][y] = 0;
-          this.SpriteTemplates[x][y] = null;
+          let h = Math.min(e, d);
+          let i = Math.max(e, d);
+          if (y < h) {
+            if (this.Distant) {
+              i = Math.min(2, y);
+              level.SetBlock(x, y, 4 + i * 8);
+            } else level.SetBlock(x, y, 5);
+          } else switch (y) {
+            case h:
+              i = h === d ? 0 : 1;
+              i += this.Distant ? 2 : 0;
+              level.SetBlock(x, y, i);
+              break;
+            case i:
+              i = h === d ? 0 : 1;
+              i += this.Distant ? 2 : 0;
+              level.SetBlock(x, y, i + 16);
+              break;
+            default:
+              i = y > i ? 1 : 0;
+              if (h === e) i = 1 - i;
+              i += this.Distant ? 2 : 0;
+              level.SetBlock(x, y, i + 8);
+          }
         }
       }
     }
-    // 更新数据
-    Update() {
+    /**
+     * 生成地下
+     * @param {Level} level 
+     */
+    GenerateUnderground(level) {
+      if (this.Distant) {
+        let f = 0;
+        for (let x = 0; x < this.Width; x++) {
+          if (Math.random() < .75) f = 1 - f;
+          for (let y = 0; y < this.Height; y++) {
+            let e = f;
+            let d = y - 2;
+            if (d < 0 || d > 4) {
+              d = 2;
+              e = 0;
+            }
+            level.SetBlock(x, y, 4 + e + (3 + d) * 8);
+          }
+        }
+      } else
+        for (let x = 0; x < this.Width; x++)
+          for (let y = 0; y < this.Height; y++) {
+            let e = x % 2;
+            let d = y - 1;
+            if (d < 0 || d > 7) {
+              d = 7;
+              e = 0;
+            }
+            if (e === 0 && d > 1 && d < 5) {
+              e = -1;
+              d = 0;
+            }
+            level.SetBlock(x, y, 6 + e + d * 8);
+          }
+    }
+    /**
+     * 生成的城堡
+     * @param {Level} level 
+     */
+    GenerateCastle(level) {
       for (let x = 0; x < this.Width; x++)
         for (let y = 0; y < this.Height; y++)
-          if (this.Data[x][y] > 0) this.Data[x][y]--;
-    }
-    /**
-     * 获取方块顶部
-     * @param {Number} x X坐标
-     * @param {Number} y Y坐标
-     */
-    GetBlockCapped(x, y) {
-      x = Math.max(x, 0);
-      y = Math.max(y, 0);
-      x >= this.Width && (x = this.Width - 1);
-      y >= this.Height && (y = this.Height - 1);
-      return this.Map[x][y];
-    }
-    /**
-     * 获取方块
-     * @param {Number} x X坐标
-     * @param {Number} y Y坐标
-     */
-    GetBlock(x, y) {
-      x < 0 && (x = 0);
-      x = Math.max(x, 0);
-      if (y < 0) return 0;
-      x >= this.Width && (x = this.Width - 1);
-      y >= this.Height && (y = this.Height - 1);
-      return this.Map[x][y];
-    }
-    /**
-     * 设置方块
-     * @param {Number} x X坐标
-     * @param {Number} y Y坐标
-     * @param {Element} ele 元素
-     */
-    SetBlock(x, y, ele) {
-      x < 0 || y < 0 || x >= this.Width || y >= this.Height || (this.Map[x][y] = ele);
-    }
-    /**
-     * 设置方块数据
-     * @param {Number} x X坐标
-     * @param {Number} y Y坐标
-     * @param {Element} ele 元素 
-     */
-    SetBlockData(x, y, ele) {
-      x < 0 || y < 0 || x >= this.Width || y >= this.Height || (this.Data[x][y] = ele);
-    }
-    /**
-     * 判断阻塞
-     * @param {Number} x X坐标
-     * @param {Number} y Y坐标
-     * @param {Element} ele 元素 
-     */
-    IsBlocking(x, y, ele) {
-      x = this.GetBlock(x, y);
-      y = (Mario.Tile.Behaviors[x & 255] & Mario.Tile.BlockAll) > 0;
-      y |= ele > 0 && (Mario.Tile.Behaviors[x & 255] & Mario.Tile.BlockUpper) > 0;
-      y |= ele < 0 && (Mario.Tile.Behaviors[x & 255] & Mario.Tile.BlockLower) > 0;
-      return y;
-    }
-    /**
-     * 获取Sprite模板
-     * @param {Number} x X坐标
-     * @param {Number} y Y坐标
-     */
-    GetSpriteTemplate(x, y) {
-      return x < 0 || y < 0 || x >= this.Width || y >= this.Height ? null : this.SpriteTemplates[x][y];
-    }
-    /**
-     * 设置Sprite模板
-     * @param {Number} x X坐标
-     * @param {Number} y Y坐标
-     * @param {Element} ele 元素
-     */
-    SetSpriteTemplate(x, y, ele) {
-      x < 0 || y < 0 || x >= this.Width || y >= this.Height || (this.SpriteTemplates[x][y] = ele);
-    }
-  }
-})();
-Mario.BackgroundGenerator = (() => class {
-  /**
-   * 背景信号发生器
-   * @param {Number} width 宽
-   * @param {Number} height 高
-   * @param {Boolean} distant 
-   * @param {ClassDecorator} type 引用类
-   */
-  constructor(width, height, distant, type) {
-    this.Width = width;
-    this.Height = height;
-    this.Distant = distant;
-    this.Type = type;
-  }
-  /**
-   * 属性设置
-   * @param {Number} width 宽
-   * @param {Number} height 高
-   * @param {Boolean} distant 
-   * @param {ClassDecorator} type 引用类
-   */
-  SetValues(width, height, distant, type) {
-    this.Width = width;
-    this.Height = height;
-    this.Distant = distant;
-    this.Type = type;
-  }
-  // 创建关卡
-  CreateLevel() {
-    let level = new Mario.Level(this.Width, this.Height);
-    let { Overground, Underground, Castle } = Mario.LevelType;
-    switch (this.Type) {
-      case Overground: this.GenerateOverground(level); break;
-      case Underground: this.GenerateUnderground(level); break;
-      case Castle: this.GenerateCastle(level); break;
-    }
-    return level;
-  }
-  /**
-   * 生成地面
-   * @param {*} level 
-   */
-  GenerateOverground(level) {
-    let b = this.Distant ? 4 : 6,
-      c = this.Distant ? 2 : 1,
-      e = Math.floor(Math.random() * b) + c,
-      d = Math.floor(Math.random() * b) + c;
-    for (let x = 0; x < this.Width; x++) {
-      for (e = d; e === d; d = Math.floor(Math.random() * b) + c);
-      for (let y = 0; y < this.Height; y++) {
-        let h = Math.min(e, d);
-        let i = Math.max(e, d);
-        if (y < h) {
           if (this.Distant) {
-            i = Math.min(2, y);
-            level.SetBlock(x, y, 4 + i * 8);
-          } else level.SetBlock(x, y, 5);
-        } else switch (y) {
-          case h:
-            i = h === d ? 0 : 1;
-            i += this.Distant ? 2 : 0;
-            level.SetBlock(x, y, i);
-            break;
-          case i:
-            i = h === d ? 0 : 1;
-            i += this.Distant ? 2 : 0;
-            level.SetBlock(x, y, i + 16);
-            break;
-          default:
-            i = y > i ? 1 : 0;
-            if (h === e) i = 1 - i;
-            i += this.Distant ? 2 : 0;
-            level.SetBlock(x, y, i + 8);
-        }
-      }
-    }
-  }
-  /**
-   * 生成地下
-   * @param {*} level 
-   */
-  GenerateUnderground(level) {
-    if (this.Distant) {
-      let f = 0;
-      for (let x = 0; x < this.Width; x++) {
-        if (Math.random() < .75) f = 1 - f;
-        for (let y = 0; y < this.Height; y++) {
-          let e = f;
-          let d = y - 2;
-          if (d < 0 || d > 4) {
-            d = 2;
-            e = 0;
-          }
-          level.SetBlock(x, y, 4 + e + (3 + d) * 8);
-        }
-      }
-    } else
-      for (let x = 0; x < this.Width; x++)
-        for (let y = 0; y < this.Height; y++) {
-          let e = x % 2;
-          let d = y - 1;
-          if (d < 0 || d > 7) {
-            d = 7;
-            e = 0;
-          }
-          if (e === 0 && d > 1 && d < 5) {
-            e = -1;
-            d = 0;
-          }
-          level.SetBlock(x, y, 6 + e + d * 8);
-        }
-  }
-  // 生成的城堡
-  GenerateCastle(level) {
-    for (let x = 0; x < this.Width; x++)
-      for (let y = 0; y < this.Height; y++)
-        if (this.Distant) {
-          let e = x % 2;
-          let d = y - 1;
-          if (d > 2)
-            if (d < 5) d = 2;
-            else d -= 2;
-          if (d < 0) {
-            e = 0;
-            d = 5;
-          } else if (d > 4) {
-            e = 1;
-            d = 5;
-          } else if (e < 1) {
-            e = 0;
-            if (d === 3) d = 3;
-            else if (d > 0 && d < 3) d = 2;
-          }
-          level.SetBlock(x, y, 1 + e + (d + 4) * 8);
-        } else {
-          let e = x % 3;
-          let d = y - 1;
-          if (d > 2)
-            if (d < 5) d = 2;
-            else d -= 2;
-          if (d < 0) {
-            e = 1;
-            d = 5;
-          } else if (d > 4) {
-            e = 2;
-            d = 5;
-          } else if (e < 2) {
-            if (d === 4) {
-              e = 2;
-              d = 4;
-            } else if (d > 0 && d < 4) {
-              e = 4;
-              d = -3;
+            let e = x % 2;
+            let d = y - 1;
+            if (d > 2)
+              if (d < 5) d = 2;
+              else d -= 2;
+            if (d < 0) {
+              e = 0;
+              d = 5;
+            } else if (d > 4) {
+              e = 1;
+              d = 5;
+            } else if (e < 1) {
+              e = 0;
+              if (d === 3) d = 3;
+              else if (d > 0 && d < 3) d = 2;
             }
+            level.SetBlock(x, y, 1 + e + (d + 4) * 8);
+          } else {
+            let e = x % 3;
+            let d = y - 1;
+            if (d > 2)
+              if (d < 5) d = 2;
+              else d -= 2;
+            if (d < 0) {
+              e = 1;
+              d = 5;
+            } else if (d > 4) {
+              e = 2;
+              d = 5;
+            } else if (e < 2) {
+              if (d === 4) {
+                e = 2;
+                d = 4;
+              } else if (d > 0 && d < 4) {
+                e = 4;
+                d = -3;
+              }
+            }
+            level.SetBlock(x, y, 1 + e + (d + 3) * 8);
           }
-          level.SetBlock(x, y, 1 + e + (d + 3) * 8);
+    }
+  },
+  BackgroundRenderer: class extends Drawable {
+    /**
+     * 背景渲染器
+     * @param {Level} level 等级
+     * @param {Number} width 宽
+     * @param {Number} y Y坐标
+     * @param {Number} distance 距离
+     */
+    constructor(level, width, y, distance) {
+      super();
+      this.Level = level;
+      this.Width = width;
+      this.Distance = distance;
+      this.TilesY = (y / 32 | 0) + 1;
+      this.Background = Mario.SpriteCuts.GetBackgroundSheet();
+    }
+    /**
+     * 布局
+     * @param {Object} ctx 
+     * @param {Camera} camera 
+     */
+    Draw(ctx, camera) {
+      let c = camera.X / this.Distance;
+      for (let x = c / 32 | 0; x <= (c + this.Width) / 32 | 0; x++)
+        for (let y = 0; y < this.TilesY; y++) {
+          let level = this.Level.GetBlock(x, y) & 255;
+          let block = this.Background[level % 8][level / 8 | 0];
+          ctx.drawImage(Enjine.Resources.Images.background, block.X, block.Y, block.Width, block.Height, (x << 5) - c | 0, y << 5 | 0, block.Width, block.Height);
         }
-  }
-})();
-Mario.BackgroundRenderer = (() => class extends Enjine.Drawable {
-  /**
-   * 背景渲染器
-   * @param {*} level 
-   * @param {*} width 
-   * @param {*} y Y坐标
-   * @param {*} distance 
-   */
-  constructor(level, width, y, distance) {
-    super();
-    this.Level = level;
-    this.Width = width;
-    this.Distance = distance;
-    this.TilesY = (y / 32 | 0) + 1;
-    this.Background = Mario.SpriteCuts.GetBackgroundSheet();
-  }
-  Draw(a, b) {
-    let c = b.X / this.Distance;
-    for (let e = c / 32 | 0; e <= (c + this.Width) / 32 | 0; e++)
-      for (let d = 0; d < this.TilesY; d++) {
-        let block = this.Level.GetBlock(e, d) & 255;
-        block = this.Background[block % 8][block / 8 | 0];
-        a.drawImage(Enjine.Resources.Images.background, block.X, block.Y, block.Width, block.Height, (e << 5) - c | 0, d << 5 | 0, block.Width, block.Height);
+    }
+  },
+  ImprovedNoise: class {
+    constructor() {
+      this.P = [];
+      this.Shuffle();
+    }
+    // 改组
+    Shuffle() {
+      let a = [];
+      for (let i = 0; i < 256; i++)
+        a[i] = i;
+      for (let i = 0; i < 256; i++) {
+        let random = (Math.random() * 255 | 0) + i;
+        let amount = a[i];
+        a[i] = a[random];
+        a[random] = amount;
+        this.P[i + 256] = this.P[i] = a[i];
       }
-  }
-})();
-Mario.ImprovedNoise = (() => class {
-  constructor(a) {
-    this.P = [];
-    this.Shuffle(a);
-  }
-  Shuffle() {
-    let a = [];
-    for (let i = 0; i < 256; i++)
-      a[i] = i;
-    for (let i = 0; i < 256; i++) {
-      let random = (Math.random() * 255 | 0) + i;
-      let amount = a[i];
-      a[i] = a[random];
-      a[random] = amount;
-      this.P[i + 256] = this.P[i] = a[i];
     }
-  }
-  PerlinNoise(a, b) {
-    let e = 0;
-    for (let i = 0; i < 8; i++) {
-      let d = 64 / (1 << i);
-      e += this.Noise(a / d, b / d, 128) / (1 << i);
+    /**
+     * 遍历噪音
+     * @param {Number} x 
+     * @param {Number} y 
+     * @returns {Number}
+     */
+    PerlinNoise(x, y) {
+      let sum = 0;
+      for (let i = 0; i < 8; i++) {
+        let d = 64 / (1 << i);
+        sum += this.Noise(x / d, y / d, 128) / (1 << i);
+      }
+      return sum;
     }
-    return e;
-  }
-  Noise(a, b, c) {
-    let e = (a | 0) & 255, d = (b | 0) & 255, f = (c | 0) & 255;
-    a -= a | 0;
-    b -= b | 0;
-    c -= c | 0;
-    let g = this.Fade(a),
-      h = this.Fade(b),
-      i = this.Fade(c),
-      j = this.P[e] + d,
-      k = this.P[j] + f;
-    j = this.P[j + 1] + f;
-    d = this.P[e + 1] + d;
-    e = this.P[d] + f;
-    f = this.P[d + 1] + f;
-    return this.Lerp(i, this.Lerp(h, this.Lerp(g, this.Grad(this.P[k], a, b, c), this.Grad(this.P[e], a - 1, b, c)), this.Lerp(g, this.Grad(this.P[j], a, b - 1, c), this.Grad(this.P[f], a - 1, b - 1, c))), this.Lerp(h, this.Lerp(g, this.Grad(this.P[k + 1], a, b, c - 1), this.Grad(this.P[e + 1], a - 1, b, c - 1)), this.Lerp(g, this.Grad(this.P[j + 1], a, b - 1, c - 1), this.Grad(this.P[f + 1], a - 1, b - 1, c - 1))));
-  }
-  Fade(a) {
-    return a * a * a * (a * (a * 6 - 15) + 10);
-  }
-  Lerp(a, b, c) {
-    return b + a * (c - b);
-  }
-  Grad(a, b, c, e) {
-    a &= 15;
-    return ((a & 1) === 0 ? 1 : -1) * (a < 8 ? b : c) + ((a & 2) === 0 ? 1 : -1) * (a < 4 ? c : a === 12 || a === 14 ? b : e);
-  }
-})();
-Mario.NotchSprite = (() => class extends Enjine.Drawable {
-  constructor(a) {
-    super();
-    this.YPicO = this.XPicO = this.YPic = this.XPic = this.Ya = this.Xa = this.Y = this.X = this.YOld = this.XOld = 0;
-    this.PicHeight = this.PicWidth = 32;
-    this.YFlip = this.XFlip = !1;
-    this.Visible = !0;
-    this.Image = a;
-    this.Delta = 0;
-    this.SpriteTemplate = null;
-    this.Layer = 1;
-  }
-  Draw(a) {
-    if (this.Visible) {
-      let b = (this.XOld + (this.X - this.XOld) * this.Delta | 0) - this.XPicO;
-      let c = (this.YOld + (this.Y - this.YOld) * this.Delta | 0) - this.YPicO;
-      a.save();
-      a.scale(
-        this.XFlip ? -1 : 1,
-        this.YFlip ? -1 : 1
-      );
-      a.translate(
-        this.XFlip ? -320 : 0,
-        this.YFlip ? -240 : 0
-      );
-      a.drawImage(
-        this.Image,
-        this.XPic * this.PicWidth,
-        this.YPic * this.PicHeight,
-        this.PicWidth,
-        this.PicHeight,
-        this.XFlip ? 320 - b - this.PicWidth : b,
-        this.YFlip ? 240 - c - this.PicHeight : c,
-        this.PicWidth,
-        this.PicHeight
-      );
-      a.restore();
+    /**
+     * 噪音设置
+     * @param {Number} a 
+     * @param {Number} b 
+     * @param {Number} c 
+     */
+    Noise(a, b, c) {
+      let e = (a | 0) & 255, d = (b | 0) & 255, f = (c | 0) & 255;
+      a -= a | 0;
+      b -= b | 0;
+      c -= c | 0;
+      let g = this.Fade(a),
+        h = this.Fade(b),
+        i = this.Fade(c),
+        j = this.P[e] + d,
+        k = this.P[j] + f;
+      j = this.P[j + 1] + f;
+      d = this.P[e + 1] + d;
+      e = this.P[d] + f;
+      f = this.P[d + 1] + f;
+      return this.Lerp(i, this.Lerp(h, this.Lerp(g, this.Grad(this.P[k], a, b, c), this.Grad(this.P[e], a - 1, b, c)), this.Lerp(g, this.Grad(this.P[j], a, b - 1, c), this.Grad(this.P[f], a - 1, b - 1, c))), this.Lerp(h, this.Lerp(g, this.Grad(this.P[k + 1], a, b, c - 1), this.Grad(this.P[e + 1], a - 1, b, c - 1)), this.Lerp(g, this.Grad(this.P[j + 1], a, b - 1, c - 1), this.Grad(this.P[f + 1], a - 1, b - 1, c - 1))));
     }
-  }
-  Update(delta) {
-    this.XOld = this.X;
-    this.YOld = this.Y;
-    this.Move();
-    this.Delta = delta;
-  }
-  UpdateNoMove() {
-    this.XOld = this.X;
-    this.YOld = this.Y;
-    this.Delta = 0;
-  }
-  Move() {
-    this.X += this.Xa;
-    this.Y += this.Ya;
-  }
-  GetX(x) {
-    return (this.XOld + (this.X - this.XOld) * x | 0) - this.XPicO;
-  }
-  GetY(y) {
-    return (this.YOld + (this.Y - this.YOld) * y | 0) - this.YPicO;
-  }
-  CollideCheck() { }
-  BumpCheck() { }
-  Release() { }
-  ShellCollideCheck() {
-    return !1;
-  }
-  FireballCollideCheck() {
-    return !1;
-  }
-})();
-Mario.Character = (() => class extends Mario.NotchSprite {
-  constructor() {
-    super(null);
-    this.Fire = this.Large = !1;
-    this.Coins = 0;
-    this.Lives = 3;
-    this.LevelString = "none";
-    this.AirInertia = this.GroundInertia = .89;
-    this.RunTime = 0;
-    this.Sliding = this.Ducking = this.MayJump = this.OnGround = this.WasOnGround = !1;
-    this.YJumpSpeed = this.XJumpSpeed = this.JumpTime = 0;
-    this.CanShoot = !1;
-    this.Width = 4;
-    this.Height = 24;
-    this.World = null;
-    this.InvulnerableTime = this.WinTime = this.DeathTime = this.YDeathPos = this.XDeathPos = this.PowerUpTime = this.Facing = 0;
-    this.Carried = null;
-    this.NewFire = this.NewLarge = this.LastFire = this.LastLarge = !1;
-  }
-  Initialize(a) {
-    this.World = a;
-    this.X = 32;
-    this.RunTime = this.PowerUpTime = this.Y = 0;
-    this.Sliding = this.Ducking = this.MayJump = this.OnGround = this.WasOnGround = !1;
-    this.YJumpSpeed = this.XJumpSpeed = this.JumpTime = 0;
-    this.CanShoot = !1;
-    this.Width = 4;
-    this.Height = 24;
-    this.World = a;
-    this.InvulnerableTime = this.WinTime = this.DeathTime = this.YDeathPos = this.XDeathPos = this.PowerUpTime = this.Facing = 0;
-    this.Carried = null;
-    this.SetLarge(this.Large, this.Fire);
-  }
-  SetLarge(a, b) {
-    b && (a = !0);
-    a || (b = !1);
-    this.LastLarge = this.Large;
-    this.LastFire = this.Fire;
-    this.Large = a;
-    this.Fire = b;
-    this.NewLarge = this.Large;
-    this.NewFire = this.Fire;
-    this.Blink(!0);
-  }
-  Blink(a) {
-    this.Large = a ? this.NewLarge : this.LastLarge;
-    this.Fire = a ? this.NewFire : this.LastFire;
-    this.Image = this.Large ? this.Fire ? Enjine.Resources.Images.fireMario : Enjine.Resources.Images.mario : Enjine.Resources.Images.smallMario;
-    this.XPicO = this.Large ? 16 : 8;
-    this.YPicO = this.Large ? 31 : 15;
-    this.PicWidth = this.PicHeight = this.Large ? 32 : 16;
-  }
-  Move() {
-    if (this.WinTime > 0) {
-      this.WinTime++;
-      this.Ya = this.Xa = 0;
-    } else if (this.DeathTime > 0) {
-      if (++this.DeathTime < 11) this.Ya = this.Xa = 0;
-      else if (this.DeathTime === 11) this.Ya = -15;
-      else this.Ya += 2;
-      this.X += this.Xa;
-      this.Y += this.Ya;
-    } else if (this.PowerUpTime !== 0) {
-      this.PowerUpTime += this.PowerUpTime > 0 ? -1 : 1;
-      this.Blink((((this.PowerUpTime > 0 ? 1 : -1) * this.PowerUpTime / 3 | 0) & 1) === 0);
-      if (this.PowerUpTime === 0) this.World.Paused = !1;
-      this.CalcPic();
+    /**
+     * 淡出
+     * @param {Number} a 
+     * @returns {Number}
+     */
+    Fade(a) {
+      return a * a * a * (a * (a * 6 - 15) + 10);
     }
-    else {
-      this.InvulnerableTime > 0 && this.InvulnerableTime--;
-      this.Visible = ((this.InvulerableTime / 2 | 0) & 1) === 0;
-      this.WasOnGround = this.OnGround;
-      let a = Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.A) ? 1.2 : .6;
-      if (this.OnGround)
-        this.Ducking = Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.DOWN) && this.Large;
-      if (this.Xa > 2) this.Facing = 1;
-      if (this.Xa < -2) this.Facing = -1;
-      if (Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.S) || this.JumpTime < 0 && !this.OnGround && !this.Sliding) {
-        if (this.JumpTime < 0) {
-          this.Xa = this.XJumpSpeed;
-          this.Ya = -this.JumpTime * this.YJumpSpeed;
-          this.JumpTime++;
-        } else if (this.OnGround && this.MayJump) {
-          Enjine.Resources.PlaySound("jump");
-          this.XJumpSpeed = 0;
-          this.YJumpSpeed = -1.9;
-          this.JumpTime = 7;
-          this.Ya = this.JumpTime * this.YJumpSpeed;
-          this.Sliding = this.OnGround = !1;
-        } else if (this.Sliding && this.MayJump) {
-          Enjine.Resources.PlaySound("jump");
-          this.XJumpSpeed = -this.Facing * 6;
-          this.YJumpSpeed = -2;
-          this.JumpTime = -6;
-          this.Xa = this.XJumpSpeed;
-          this.Ya = -this.JumpTime * this.YJumpSpeed;
-          this.Sliding = this.OnGround = !1;
-          this.Facing *= -1;
-        } else if (this.JumpTime > 0) {
-          this.Xa += this.XJumpSpeed;
-          this.Ya = this.JumpTime-- * this.YJumpSpeed;
+    /**
+     * 
+     * @param {Number} a 
+     * @param {Number} b 
+     * @param {Number} c 
+     * @returns {Number}
+     */
+    Lerp(a, b, c) {
+      return b + a * (c - b);
+    }
+    /**
+     * 
+     * @param {Number} a 
+     * @param {Number} b 
+     * @param {Number} c 
+     * @param {Number} e 
+     * @returns {Number}
+     */
+    Grad(a, b, c, e) {
+      a &= 15;
+      return ((a & 1) === 0 ? 1 : -1) * (a < 8 ? b : c) + ((a & 2) === 0 ? 1 : -1) * (a < 4 ? c : a === 12 || a === 14 ? b : e);
+    }
+  },
+  NotchSprite,
+  Character: class extends NotchSprite {
+    constructor() {
+      super(null);
+      this.Fire = this.Large = !1;
+      this.Coins = 0;
+      this.Lives = 3;
+      this.LevelString = "none";
+      this.AirInertia = this.GroundInertia = .89;
+      this.RunTime = 0;
+      this.Sliding = this.Ducking = this.MayJump = this.OnGround = this.WasOnGround = !1;
+      this.YJumpSpeed = this.XJumpSpeed = this.JumpTime = 0;
+      this.CanShoot = !1;
+      this.Width = 4;
+      this.Height = 24;
+      this.InvulnerableTime = this.WinTime = this.DeathTime = this.YDeathPos = this.XDeathPos = this.PowerUpTime = this.Facing = 0;
+      this.NewFire = this.NewLarge = this.LastFire = this.LastLarge = !1;
+    }
+    /**
+     * 初始化
+     * @param {Mario} World 
+     */
+    Initialize(World) {
+      this.World = World;
+      this.X = 32;
+      this.RunTime = this.PowerUpTime = this.Y = 0;
+      this.Sliding = this.Ducking = this.MayJump = this.OnGround = this.WasOnGround = !1;
+      this.YJumpSpeed = this.XJumpSpeed = this.JumpTime = 0;
+      this.CanShoot = !1;
+      this.Width = 4;
+      this.Height = 24;
+      this.InvulnerableTime = this.WinTime = this.DeathTime = this.YDeathPos = this.XDeathPos = this.PowerUpTime = this.Facing = 0;
+      this.Carried = null;
+      this.SetLarge(this.Large, this.Fire);
+    }
+    /**
+     * 变大
+     * @param {Boolean} Large 
+     * @param {Boolean} Fire 
+     */
+    SetLarge(Large, Fire) {
+      Fire && (Large = !0);
+      Large || (Fire = !1);
+      this.LastLarge = this.Large;
+      this.LastFire = this.Fire;
+      this.Large = Large;
+      this.Fire = Fire;
+      this.NewLarge = this.Large;
+      this.NewFire = this.Fire;
+      this.Blink(!0);
+    }
+    /**
+     * 闪光
+     * @param {Boolean} isBlink 
+     */
+    Blink(isBlink) {
+      this.Large = isBlink ? this.NewLarge : this.LastLarge;
+      this.Fire = isBlink ? this.NewFire : this.LastFire;
+      this.Image = this.Large ? this.Fire ? Enjine.Resources.Images.fireMario : Enjine.Resources.Images.mario : Enjine.Resources.Images.smallMario;
+      this.XPicO = this.Large ? 16 : 8;
+      this.YPicO = this.Large ? 31 : 15;
+      this.PicWidth = this.PicHeight = this.Large ? 32 : 16;
+    }
+    // 移动
+    Move() {
+      if (this.WinTime > 0) {
+        this.WinTime++;
+        this.Ya = this.Xa = 0;
+      } else if (this.DeathTime > 0) {
+        if (++this.DeathTime < 11) this.Ya = this.Xa = 0;
+        else if (this.DeathTime === 11) this.Ya = -15;
+        else this.Ya += 2;
+        this.X += this.Xa;
+        this.Y += this.Ya;
+      } else if (this.PowerUpTime !== 0) {
+        this.PowerUpTime += this.PowerUpTime > 0 ? -1 : 1;
+        this.Blink((((this.PowerUpTime > 0 ? 1 : -1) * this.PowerUpTime / 3 | 0) & 1) === 0);
+        if (this.PowerUpTime === 0) this.World.Paused = !1;
+        this.CalcPic();
+      } else {
+        this.InvulnerableTime > 0 && this.InvulnerableTime--;
+        this.Visible = ((this.InvulerableTime / 2 | 0) & 1) === 0;
+        this.WasOnGround = this.OnGround;
+        let a = Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.A) ? 1.2 : .6;
+        if (this.OnGround)
+          this.Ducking = Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.DOWN) && this.Large;
+        if (this.Xa > 2) this.Facing = 1;
+        if (this.Xa < -2) this.Facing = -1;
+        if (Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.S) || this.JumpTime < 0 && !this.OnGround && !this.Sliding) {
+          if (this.JumpTime < 0) {
+            this.Xa = this.XJumpSpeed;
+            this.Ya = -this.JumpTime * this.YJumpSpeed;
+            this.JumpTime++;
+          } else if (this.OnGround && this.MayJump) {
+            Enjine.Resources.PlaySound("jump");
+            this.XJumpSpeed = 0;
+            this.YJumpSpeed = -1.9;
+            this.JumpTime = 7;
+            this.Ya = this.JumpTime * this.YJumpSpeed;
+            this.Sliding = this.OnGround = !1;
+          } else if (this.Sliding && this.MayJump) {
+            Enjine.Resources.PlaySound("jump");
+            this.XJumpSpeed = -this.Facing * 6;
+            this.YJumpSpeed = -2;
+            this.JumpTime = -6;
+            this.Xa = this.XJumpSpeed;
+            this.Ya = -this.JumpTime * this.YJumpSpeed;
+            this.Sliding = this.OnGround = !1;
+            this.Facing *= -1;
+          } else if (this.JumpTime > 0) {
+            this.Xa += this.XJumpSpeed;
+            this.Ya = this.JumpTime-- * this.YJumpSpeed;
+          }
+        } else this.JumpTime = 0;
+        if (Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.LEFT) && !this.Ducking) {
+          if (this.Facing === 1) this.Sliding = !1;
+          this.Xa -= a;
+          if (this.JumpTime >= 0) this.Facing = -1;
         }
-      } else this.JumpTime = 0;
-      if (Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.LEFT) && !this.Ducking) {
-        if (this.Facing === 1) this.Sliding = !1;
-        this.Xa -= a;
-        if (this.JumpTime >= 0) this.Facing = -1;
-      }
-      if (Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.RIGHT) && !this.Ducking) {
-        if (this.Facing === -1) this.Sliding = !1;
-        this.Xa += a;
-        if (this.JumpTime >= 0) this.Facing = 1;
-      }
-      if (!Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.LEFT) && !Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.RIGHT) || this.Ducking || this.Ya < 0 || this.OnGround) this.Sliding = !1;
-      if (Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.A) && this.CanShoot && this.Fire && this.World.FireballsOnScreen < 2) {
-        Enjine.Resources.PlaySound("fireball");
-        this.World.AddSprite(new Mario.Fireball(this.World, this.X + this.Facing * 6, this.Y - 20, this.Facing));
-      }
-      this.CanShoot = !Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.A);
-      this.MayJump = (this.OnGround || this.Sliding) && !Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.S);
-      this.XFlip = this.Facing === -1;
-      this.RunTime += Math.abs(this.Xa) + 5;
-      if (Math.abs(this.Xa) < .5) this.Xa = this.RunTime = 0;
-      this.CalcPic();
-      if (this.Sliding) {
-        this.World.AddSprite(new Mario.Sparkle(
-          this.World,
-          (this.X + Math.random() * 4 - 2 | 0) + this.Facing * 8,
-          (this.Y + Math.random() * 4 | 0) - 24,
-          Math.random() * 2 - 1,
-          Math.random(), 0, 1, 5
-        ));
-        this.Ya *= .5;
-      }
-      this.OnGround = !1;
-      this.SubMove(this.Xa, 0);
-      this.SubMove(0, this.Ya);
-      if (this.Y > this.World.Level.Height * 16 + 16) this.Die();
-      if (this.X < 0) this.Xa = this.X = 0;
-      if (this.X > this.World.Level.ExitX * 16) this.Win();
-      if (this.X > this.World.Level.Width * 16) {
-        this.X = this.World.Level.Width * 16;
-        this.Xa = 0;
-      }
-      this.Ya *= .85;
-      this.Xa *= this.OnGround ? this.GroundInertia : this.AirInertia;
-      if (!this.OnGround) this.Ya += 3;
-      if (this.Carried !== null) {
-        this.Carried.X *= this.X + this.Facing * 8;
-        this.Carried.Y *= this.Y - 2;
-        if (!Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.A)) {
-          this.Carried.Release(this);
-          this.Carried = null;
+        if (Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.RIGHT) && !this.Ducking) {
+          if (this.Facing === -1) this.Sliding = !1;
+          this.Xa += a;
+          if (this.JumpTime >= 0) this.Facing = 1;
         }
-      }
-    }
-  }
-  CalcPic() {
-    let a = (this.RunTime / 20 | 0) % (this.Large ? 4 : 2);
-    if (this.Large && a === 3) a = 1;
-    if (this.Carried === null && Math.abs(this.Xa) > 10) a += this.Large ? 3 : 2;
-    if (this.Carried !== null) a += this.Large ? 10 : 8;
-    if (!this.OnGround) a = this.Carried !== null ? this.Large ? 12 : 9 : this.Large ? Math.abs(this.Xa) > 10 ? 7 : 6 : Math.abs(this.Xa) > 10 ? 5 : 4;
-    if (this.OnGround && (this.Facing === -1 && this.Xa > 0 || this.Facing === 1 && this.Xa < 0)) {
-      if (this.Xa > 1 || this.Xa < -1)
-        a = this.Large ? 9 : 7;
-      if (this.Xa > 3 || this.Xa < -3)
-        for (let i = 0; i < 3; i++)
-          this.World.AddSprite(new Mario.Sparkle(this.World, this.X + Math.random() * 8 - 4 | 0, this.Y + Math.random() * 4 | 0, Math.random() * 2 - 1, Math.random() * -1, 0, 1, 5));
-    }
-    if (this.Large) {
-      if (this.Ducking) a = 14;
-      this.Height = this.Ducking ? 12 : 24;
-    } else this.Height = 12;
-    this.XPic = a;
-  }
-  SubMove(a, b) {
-    let c = !1;
-    while (a > 8) {
-      if (!this.SubMove(8, 0)) return !1;
-      a -= 8;
-    }
-    while (a < -8) {
-      if (!this.SubMove(-8, 0)) return !1;
-      a += 8;
-    }
-    while (b > 8) {
-      if (!this.SubMove(0, 8)) return !1;
-      b -= 8;
-    }
-    while (b < -8) {
-      if (!this.SubMove(0, -8)) return !1;
-      b += 8;
-    }
-    let x = this.X + a;
-    let y = this.Y + b;
-    if (b > 0 && (
-      this.IsBlocking(x - this.Width, y, a, 0) ||
-      this.IsBlocking(x + this.Width, y, a, 0) ||
-      this.IsBlocking(x - this.Width, y + 1, a, b) ||
-      this.IsBlocking(x + this.Width, y + 1, a, b)
-    )) c = !0;
-    if (b < 0 && (
-      this.IsBlocking(x, y - this.Height, a, b) || c ||
-      this.IsBlocking(x - this.Width, y - this.Height, a, b) || c ||
-      this.IsBlocking(x + this.Width, y - this.Height, a, b)
-    )) c = !0;
-    if (a > 0) {
-      this.Sliding = !0;
-      if (
-        this.IsBlocking(x + this.Width, y - this.Height, a, b) ||
-        this.IsBlocking(x + this.Width, y - (this.Height / 2 | 0), a, b) ||
-        this.IsBlocking(x + this.Width, y, a, b)
-      ) c = !0;
-      else this.Sliding = !1;
-    }
-    if (a < 0) {
-      this.Sliding = !0;
-      if (
-        this.IsBlocking(x - this.Width, y - this.Height, a, b) ||
-        this.IsBlocking(x - this.Width, y - (this.Height / 2 | 0), a, b) ||
-        this.IsBlocking(x - this.Width, y, a, b)
-      ) c = !0;
-      else this.Sliding = !1;
-    }
-    if (c) {
-      if (a < 0) {
-        this.X = ((this.X - this.Width) / 16 | 0) * 16 + this.Width;
-        this.Xa = 0;
-      } else if (a > 0) {
-        this.X = ((this.X + this.Width) / 16 + 1 | 0) * 16 - this.Width - 1;
-        this.Xa = 0;
-      }
-      if (b < 0) {
-        this.Y = ((this.Y - this.Height) / 16 | 0) * 16 + this.Height;
-        this.Ya = this.JumpTime = 0;
-      } else if (b > 0) {
-        this.Y = ((this.Y - 1) / 16 + 1 | 0) * 16 - 1;
-        this.OnGround = !0;
-      }
-      return !1;
-    } else {
-      this.X += a;
-      this.Y += b;
-      return !0;
-    }
-  }
-  IsBlocking(a, b, c, e) {
-    a = a / 16 | 0;
-    b = b / 16 | 0;
-    if (a === (this.X / 16 | 0) && b === (this.Y / 16 | 0))
-      return !1;
-    let d = this.World.Level.GetBlock(a, b);
-    if ((Mario.Tile.Behaviors[d & 255] & Mario.Tile.PickUpable) > 0) {
-      this.GetCoin();
-      Enjine.Resources.PlaySound("coin");
-      this.World.Level.SetBlock(a, b, 0);
-      for (let d = 0; d < 2; d++)
-        for (let f = 0; f < 2; f++)
+        if (!Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.LEFT) && !Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.RIGHT) || this.Ducking || this.Ya < 0 || this.OnGround) this.Sliding = !1;
+        if (Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.A) && this.CanShoot && this.Fire && this.World.FireballsOnScreen < 2) {
+          Enjine.Resources.PlaySound("fireball");
+          this.World.AddSprite(new Mario.Fireball(this.World, this.X + this.Facing * 6, this.Y - 20, this.Facing));
+        }
+        this.CanShoot = !Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.A);
+        this.MayJump = (this.OnGround || this.Sliding) && !Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.S);
+        this.XFlip = this.Facing === -1;
+        this.RunTime += Math.abs(this.Xa) + 5;
+        if (Math.abs(this.Xa) < .5) this.Xa = this.RunTime = 0;
+        this.CalcPic();
+        if (this.Sliding) {
           this.World.AddSprite(new Mario.Sparkle(
             this.World,
-            a * 16 + d * 8 + (Math.random() * 8 | 0),
-            b * 16 + f * 8 + (Math.random() * 8 | 0),
-            0, 0, 0, 2, 5
+            (this.X + Math.random() * 4 - 2 | 0) + this.Facing * 8,
+            (this.Y + Math.random() * 4 | 0) - 24,
+            Math.random() * 2 - 1,
+            Math.random(), 0, 1, 5
           ));
+          this.Ya *= .5;
+        }
+        this.OnGround = !1;
+        this.SubMove(this.Xa, 0);
+        this.SubMove(0, this.Ya);
+        if (this.Y > this.World.Level.Height * 16 + 16) this.Die();
+        if (this.X < 0) this.Xa = this.X = 0;
+        if (this.X > this.World.Level.ExitX * 16) this.Win();
+        if (this.X > this.World.Level.Width * 16) {
+          this.X = this.World.Level.Width * 16;
+          this.Xa = 0;
+        }
+        this.Ya *= .85;
+        this.Xa *= this.OnGround ? this.GroundInertia : this.AirInertia;
+        if (!this.OnGround) this.Ya += 3;
+        if (this.Carried !== null) {
+          this.Carried.X *= this.X + this.Facing * 8;
+          this.Carried.Y *= this.Y - 2;
+          if (!Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.A)) {
+            this.Carried.Release(this);
+            this.Carried = null;
+          }
+        }
+      }
     }
-    if ((d = this.World.Level.IsBlocking(a, b, c, e)) && e < 0) this.World.Bump(a, b, this.Large);
-    return d;
-  }
-  Stomp(a) {
-    let b = 0;
-    if (!(this.DeathTime > 0 || this.World.Paused)) {
-      b = a.Y - a.Height / 2;
-      this.SubMove(0, b - this.Y);
-      if (a instanceof Mario.Enemy || a instanceof Mario.BulletBill) {
-        Enjine.Resources.PlaySound("kick");
-        this.XJumpSpeed = 0;
-        this.YJumpSpeed = -1.9;
-        this.JumpTime = 8;
-        this.Ya = this.JumpTime * this.YJumpSpeed;
-        this.Sliding = this.OnGround = !1;
-        this.InvulnerableTime = 1;
-      } else if (a instanceof Mario.Shell) {
-        if (Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.A) && a.Facing === 0) {
-          this.Carried = a;
-          a.Carried = !0;
-        } else {
+    // 计算图片属性
+    CalcPic() {
+      let a = (this.RunTime / 20 | 0) % (this.Large ? 4 : 2);
+      if (this.Large && a === 3) a = 1;
+      if (this.Carried === null && Math.abs(this.Xa) > 10) a += this.Large ? 3 : 2;
+      if (this.Carried !== null) a += this.Large ? 10 : 8;
+      if (!this.OnGround) a = this.Carried !== null ? this.Large ? 12 : 9 : this.Large ? Math.abs(this.Xa) > 10 ? 7 : 6 : Math.abs(this.Xa) > 10 ? 5 : 4;
+      if (this.OnGround && (this.Facing === -1 && this.Xa > 0 || this.Facing === 1 && this.Xa < 0)) {
+        if (this.Xa > 1 || this.Xa < -1)
+          a = this.Large ? 9 : 7;
+        if (this.Xa > 3 || this.Xa < -3)
+          for (let i = 0; i < 3; i++)
+            this.World.AddSprite(new Mario.Sparkle(this.World, this.X + Math.random() * 8 - 4 | 0, this.Y + Math.random() * 4 | 0, Math.random() * 2 - 1, Math.random() * -1, 0, 1, 5));
+      }
+      if (this.Large) {
+        if (this.Ducking) a = 14;
+        this.Height = this.Ducking ? 12 : 24;
+      } else this.Height = 12;
+      this.XPic = a;
+    }
+    /**
+     * 接头移动
+     * @param {Number} x1 
+     * @param {Number} y1
+     * @returns {Boolean} 
+     */
+    SubMove(x1, y1) {
+      let c = !1;
+      while (x1 > 8) {
+        if (!this.SubMove(8, 0)) return !1;
+        x1 -= 8;
+      }
+      while (x1 < -8) {
+        if (!this.SubMove(-8, 0)) return !1;
+        x1 += 8;
+      }
+      while (y1 > 8) {
+        if (!this.SubMove(0, 8)) return !1;
+        y1 -= 8;
+      }
+      while (y1 < -8) {
+        if (!this.SubMove(0, -8)) return !1;
+        y1 += 8;
+      }
+      let x = this.X + x1;
+      let y = this.Y + y1;
+      if (y1 > 0 && (
+        this.IsBlocking(x - this.Width, y, x1, 0) ||
+        this.IsBlocking(x + this.Width, y, x1, 0) ||
+        this.IsBlocking(x - this.Width, y + 1, x1, y1) ||
+        this.IsBlocking(x + this.Width, y + 1, x1, y1)
+      )) c = !0;
+      if (y1 < 0 && (
+        this.IsBlocking(x, y - this.Height, x1, y1) || c ||
+        this.IsBlocking(x - this.Width, y - this.Height, x1, y1) || c ||
+        this.IsBlocking(x + this.Width, y - this.Height, x1, y1)
+      )) c = !0;
+      if (x1 > 0) {
+        this.Sliding = !0;
+        if (
+          this.IsBlocking(x + this.Width, y - this.Height, x1, y1) ||
+          this.IsBlocking(x + this.Width, y - (this.Height / 2 | 0), x1, y1) ||
+          this.IsBlocking(x + this.Width, y, x1, y1)
+        ) c = !0;
+        else this.Sliding = !1;
+      }
+      if (x1 < 0) {
+        this.Sliding = !0;
+        if (
+          this.IsBlocking(x - this.Width, y - this.Height, x1, y1) ||
+          this.IsBlocking(x - this.Width, y - (this.Height / 2 | 0), x1, y1) ||
+          this.IsBlocking(x - this.Width, y, x1, y1)
+        ) c = !0;
+        else this.Sliding = !1;
+      }
+      if (c) {
+        if (x1 < 0) {
+          this.X = ((this.X - this.Width) / 16 | 0) * 16 + this.Width;
+          this.Xa = 0;
+        } else if (x1 > 0) {
+          this.X = ((this.X + this.Width) / 16 + 1 | 0) * 16 - this.Width - 1;
+          this.Xa = 0;
+        }
+        if (y1 < 0) {
+          this.Y = ((this.Y - this.Height) / 16 | 0) * 16 + this.Height;
+          this.Ya = this.JumpTime = 0;
+        } else if (y1 > 0) {
+          this.Y = ((this.Y - 1) / 16 + 1 | 0) * 16 - 1;
+          this.OnGround = !0;
+        }
+        return !1;
+      } else {
+        this.X += x1;
+        this.Y += y1;
+        return !0;
+      }
+    }
+    /**
+     * 判断阻隔
+     * @param {Number} x 
+     * @param {Number} y 
+     * @param {Number} x1 
+     * @param {Number} y1 
+     * @returns {Number}
+     */
+    IsBlocking(x, y, x1, y1) {
+      x = x / 16 | 0;
+      y = y / 16 | 0;
+      if (x === (this.X / 16 | 0) && y === (this.Y / 16 | 0))
+        return !1;
+      let d = this.World.Level.GetBlock(x, y);
+      if ((Mario.Tile.Behaviors[d & 255] & Mario.Tile.PickUpable) > 0) {
+        this.GetCoin();
+        Enjine.Resources.PlaySound("coin");
+        this.World.Level.SetBlock(x, y, 0);
+        for (let i = 0; i < 2; i++)
+          for (let j = 0; j < 2; j++)
+            this.World.AddSprite(new Mario.Sparkle(
+              this.World,
+              x * 16 + i * 8 + (Math.random() * 8 | 0),
+              y * 16 + j * 8 + (Math.random() * 8 | 0),
+              0, 0, 0, 2, 5
+            ));
+      }
+      if ((d = this.World.Level.IsBlocking(x, y, x1, y1)) && y1 < 0) this.World.Bump(x, y, this.Large);
+      return d;
+    }
+    /**
+     * 踩踏
+     * @param {Shell} shell 
+     */
+    Stomp(shell) {
+      let b = 0;
+      if (!(this.DeathTime > 0 || this.World.Paused)) {
+        b = shell.Y - shell.Height / 2;
+        this.SubMove(0, b - this.Y);
+        if (shell instanceof Mario.Enemy || shell instanceof Mario.BulletBill) {
           Enjine.Resources.PlaySound("kick");
           this.XJumpSpeed = 0;
           this.YJumpSpeed = -1.9;
@@ -901,151 +1465,171 @@ Mario.Character = (() => class extends Mario.NotchSprite {
           this.Ya = this.JumpTime * this.YJumpSpeed;
           this.Sliding = this.OnGround = !1;
           this.InvulnerableTime = 1;
-        }
-      }
-    }
-  }
-  GetHurt() {
-    if (!(this.DeathTime > 0 || this.World.Paused) && !(this.InvulnerableTime > 0))
-      if (this.Large) {
-        this.World.Paused = !0;
-        this.PowerUpTime = -18;
-        Enjine.Resources.PlaySound("powerdown");
-        this.SetLarge(!!this.Fire, !1);
-        this.InvulnerableTime = 32;
-      } else this.Die();
-  }
-  Win() {
-    this.XDeathPos = this.X | 0;
-    this.YDeathPos = this.Y | 0;
-    this.World.Paused = !0;
-    this.WinTime = 1;
-    Enjine.Resources.PlaySound("exit");
-  }
-  Die() {
-    this.XDeathPos = this.X | 0;
-    this.YDeathPos = this.Y | 0;
-    this.World.Paused = !0;
-    this.DeathTime = 1;
-    Enjine.Resources.PlaySound("death");
-    this.SetLarge(!1, !1);
-  }
-  GetFlower() {
-    if (!(this.DeathTime > 0 && this.World.Paused))
-      if (this.Fire) {
-        this.GetCoin();
-        Enjine.Resources.PlaySound("coin");
-      } else {
-        this.World.Paused = !0;
-        this.PowerUpTime = 18;
-        Enjine.Resources.PlaySound("powerup");
-        this.SetLarge(!0, !0);
-      }
-  }
-  GetMushroom() {
-    if (!(this.DeathTime > 0 && this.World.Paused))
-      if (this.Large) {
-        this.GetCoin();
-        Enjine.Resources.PlaySound("coin");
-      } else {
-        this.World.Paused = !0;
-        this.PowerUpTime = 18;
-        Enjine.Resources.PlaySound("powerup");
-        this.SetLarge(!0, !1);
-      }
-  }
-  Kick(a) {
-    if (!(this.DeathTime > 0 && this.World.Paused))
-      if (Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.A)) {
-        this.Carried = a;
-        a.Carried = !0;
-      } else {
-        Enjine.Resources.PlaySound("kick");
-        this.InvulnerableTime = 1;
-      }
-  }
-  Get1Up() {
-    Enjine.Resources.PlaySound("1up");
-    this.Lives = Math.min(++this.Lives, 99);
-  }
-  GetCoin() {
-    if (++this.Coins === 100) {
-      this.Coins = 0;
-      this.Get1Up();
-    }
-  }
-})();
-Mario.LevelRenderer = (() => class extends Enjine.Drawable {
-  constructor(level, width, height) {
-    super();
-    this.Width = width;
-    this.Height = height;
-    this.Level = level;
-    this.TilesY = (height / 16 | 0) + 1;
-    this.AnimTime = this.Bounce = this.Tick = this.Delta = 0;
-    this.Background = Mario.SpriteCuts.GetLevelSheet();
-  }
-  Update(a) {
-    this.AnimTime += a;
-    this.Tick = this.AnimTime | 0;
-    this.Bounce += a * 30;
-    this.Delta = a;
-  }
-  Draw(a, b) {
-    this.DrawStatic(a, b);
-    this.DrawDynamic(a, b);
-  }
-  DrawStatic(a, b) {
-    for (let x = b.X / 16 | 0; x < ((b.X + this.Width) / 16 | 0) + 1; x++)
-      for (let y = 0; y < this.TilesY; y++) {
-        let level = this.Level.GetBlock(x, y) & 255;
-        if ((Mario.Tile.Behaviors[level] & Mario.Tile.Animated) === 0) {
-          level = this.Background[level % 16][level / 16 | 0];
-          a.drawImage(Enjine.Resources.Images.map, level.X, level.Y, level.Width, level.Height, (x << 4) - b.X | 0, y << 4 | 0, level.Width, level.Height);
-        }
-      }
-  }
-  DrawDynamic(a, b) {
-    for (let x = b.X / 16 | 0; x <= (b.X + this.Width) / 16 | 0; x++)
-      for (let y = b.Y / 16 | 0; y <= (b.Y + this.Height) / 16 | 0; y++) {
-        let level = this.Level.GetBlock(x, y);
-        if ((Mario.Tile.Behaviors[level & 255] & Mario.Tile.Animated) > 0) {
-          let bounce = (this.Bounce / 3 | 0) % 4;
-          if ((level % 16 / 4 | 0) === 0 && (level / 16 | 0) === 1) {
-            bounce = (this.Bounce / 2 + (x + y) / 8 | 0) % 20;
-            if (bounce > 3) bounce = 0;
+        } else if (shell instanceof Mario.Shell) {
+          if (Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.A) && shell.Facing === 0) {
+            this.Carried = shell;
+            shell.Carried = !0;
+          } else {
+            Enjine.Resources.PlaySound("kick");
+            this.XJumpSpeed = 0;
+            this.YJumpSpeed = -1.9;
+            this.JumpTime = 8;
+            this.Ya = this.JumpTime * this.YJumpSpeed;
+            this.Sliding = this.OnGround = !1;
+            this.InvulnerableTime = 1;
           }
-          if ((level % 16 / 4 | 0) === 3 && (level / 16 | 0) === 0) bounce = 2;
-          let g = 0;
-          if (x >= 0 && y >= 0 && x < this.Level.Width && y < this.Level.Height) g = this.Level.Data[x][y];
-          if (g > 0) g = Math.sin((g - this.Delta) / 4 * Math.PI) * 8 | 0;
-          level = this.Background[(level % 16 / 4 | 0) * 4 + bounce][level / 16 | 0];
-          a.drawImage(Enjine.Resources.Images.map, level.X, level.Y, level.Width, level.Height, (x << 4) - b.X, (y << 4) - b.Y - g, level.Width, level.Height);
         }
       }
-  }
-  DrawExit0(a, b, c) {
-    for (let y = this.Level.ExitY - 8; y < this.Level.ExitY; y++) {
-      let bgc = this.Background[12][y === this.Level.ExitY - 8 ? 4 : 5];
-      a.drawImage(Enjine.Resources.Images.map, bgc.X, bgc.Y, bgc.Width, bgc.Height, (this.Level.ExitX << 4) - b.X - 16, (y << 4) - b.Y, bgc.Width, bgc.Height);
     }
-    if (c) {
-      let y = this.Level.ExitY * 16 - 48 - Math.sin(this.AnimTime) * 48 - 8;
-      let bgc = this.Background[12][3];
-      a.drawImage(Enjine.Resources.Images.map, bgc.X, bgc.Y, bgc.Width, bgc.Height, (this.Level.ExitX << 4) - b.X - 16, y - b.Y, bgc.Width, bgc.Height);
-      bgc = this.Background[13][3];
-      a.drawImage(Enjine.Resources.Images.map, bgc.X, bgc.Y, bgc.Width, bgc.Height, (this.Level.ExitX << 4) - b.X, y - b.Y, bgc.Width, bgc.Height);
+    // 获取伤害
+    GetHurt() {
+      if (!(this.DeathTime > 0 || this.World.Paused) && !(this.InvulnerableTime > 0))
+        if (this.Large) {
+          this.World.Paused = !0;
+          this.PowerUpTime = -18;
+          Enjine.Resources.PlaySound("powerdown");
+          this.SetLarge(!!this.Fire, !1);
+          this.InvulnerableTime = 32;
+        } else this.Die();
     }
-  }
-  DrawExit1(a, b) {
-    for (let y = this.Level.ExitY - 8; y < this.Level.ExitY; y++) {
-      let bgc = this.Background[13][y === this.Level.ExitY - 8 ? 4 : 5];
-      a.drawImage(Enjine.Resources.Images.map, bgc.X, bgc.Y, bgc.Width, bgc.Height, (this.Level.ExitX << 4) - b.X + 16, (y << 4) - b.Y, bgc.Width, bgc.Height);
+    // 胜利
+    Win() {
+      this.XDeathPos = this.X | 0;
+      this.YDeathPos = this.Y | 0;
+      this.World.Paused = !0;
+      this.WinTime = 1;
+      Enjine.Resources.PlaySound("exit");
     }
-  };
-})();
-Mario.LevelGenerator = (() => {
-  return class {
+    // 失败
+    Die() {
+      this.XDeathPos = this.X | 0;
+      this.YDeathPos = this.Y | 0;
+      this.World.Paused = !0;
+      this.DeathTime = 1;
+      Enjine.Resources.PlaySound("death");
+      this.SetLarge(!1, !1);
+    }
+    // 获取花朵
+    GetFlower() {
+      this.GetProps(this.Fire, !0);
+    }
+    // 获取蘑菇
+    GetMushroom() {
+      this.GetProps(this.Large, !1);
+    }
+    /**
+     * 获取道具
+     * @param {Boolean} skills 技能
+     * @param {Boolean} isFire 判断火球术
+     */
+    GetProps(skills, isFire) {
+      if (!(this.DeathTime > 0 && this.World.Paused))
+        if (skills) {
+          this.GetCoin();
+          Enjine.Resources.PlaySound("coin");
+        } else {
+          this.World.Paused = !0;
+          this.PowerUpTime = 18;
+          Enjine.Resources.PlaySound("powerup");
+          this.SetLarge(!0, isFire);
+        }
+    }
+    /**
+     * 踢
+     * @param {Element} Carried 
+     */
+    Kick(Carried) {
+      if (!(this.DeathTime > 0 && this.World.Paused))
+        if (Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.A)) {
+          this.Carried = Carried;
+          Carried.Carried = !0;
+        } else {
+          Enjine.Resources.PlaySound("kick");
+          this.InvulnerableTime = 1;
+        }
+    }
+    Get1Up() {
+      Enjine.Resources.PlaySound("1up");
+      this.Lives = Math.min(++this.Lives, 99);
+    }
+    // 获取金币
+    GetCoin() {
+      if (++this.Coins === 100) {
+        this.Coins = 0;
+        this.Get1Up();
+      }
+    }
+  },
+  LevelRenderer: class extends Drawable {
+    constructor(level, width, height) {
+      super();
+      this.Width = width;
+      this.Height = height;
+      this.Level = level;
+      this.TilesY = (height / 16 | 0) + 1;
+      this.AnimTime = this.Bounce = this.Tick = this.Delta = 0;
+      this.Background = Mario.SpriteCuts.GetLevelSheet();
+    }
+    Update(a) {
+      this.AnimTime += a;
+      this.Tick = this.AnimTime | 0;
+      this.Bounce += a * 30;
+      this.Delta = a;
+    }
+    Draw(a, b) {
+      this.DrawStatic(a, b);
+      this.DrawDynamic(a, b);
+    }
+    DrawStatic(a, b) {
+      for (let x = b.X / 16 | 0; x < ((b.X + this.Width) / 16 | 0) + 1; x++)
+        for (let y = 0; y < this.TilesY; y++) {
+          let level = this.Level.GetBlock(x, y) & 255;
+          if ((Mario.Tile.Behaviors[level] & Mario.Tile.Animated) === 0) {
+            level = this.Background[level % 16][level / 16 | 0];
+            a.drawImage(Enjine.Resources.Images.map, level.X, level.Y, level.Width, level.Height, (x << 4) - b.X | 0, y << 4 | 0, level.Width, level.Height);
+          }
+        }
+    }
+    DrawDynamic(a, b) {
+      for (let x = b.X / 16 | 0; x <= (b.X + this.Width) / 16 | 0; x++)
+        for (let y = b.Y / 16 | 0; y <= (b.Y + this.Height) / 16 | 0; y++) {
+          let level = this.Level.GetBlock(x, y);
+          if ((Mario.Tile.Behaviors[level & 255] & Mario.Tile.Animated) > 0) {
+            let bounce = (this.Bounce / 3 | 0) % 4;
+            if ((level % 16 / 4 | 0) === 0 && (level / 16 | 0) === 1) {
+              bounce = (this.Bounce / 2 + (x + y) / 8 | 0) % 20;
+              if (bounce > 3) bounce = 0;
+            }
+            if ((level % 16 / 4 | 0) === 3 && (level / 16 | 0) === 0) bounce = 2;
+            let g = 0;
+            if (x >= 0 && y >= 0 && x < this.Level.Width && y < this.Level.Height) g = this.Level.Data[x][y];
+            if (g > 0) g = Math.sin((g - this.Delta) / 4 * Math.PI) * 8 | 0;
+            level = this.Background[(level % 16 / 4 | 0) * 4 + bounce][level / 16 | 0];
+            a.drawImage(Enjine.Resources.Images.map, level.X, level.Y, level.Width, level.Height, (x << 4) - b.X, (y << 4) - b.Y - g, level.Width, level.Height);
+          }
+        }
+    }
+    DrawExit0(a, b, c) {
+      for (let y = this.Level.ExitY - 8; y < this.Level.ExitY; y++) {
+        let bgc = this.Background[12][y === this.Level.ExitY - 8 ? 4 : 5];
+        a.drawImage(Enjine.Resources.Images.map, bgc.X, bgc.Y, bgc.Width, bgc.Height, (this.Level.ExitX << 4) - b.X - 16, (y << 4) - b.Y, bgc.Width, bgc.Height);
+      }
+      if (c) {
+        let y = this.Level.ExitY * 16 - 48 - Math.sin(this.AnimTime) * 48 - 8;
+        let bgc = this.Background[12][3];
+        a.drawImage(Enjine.Resources.Images.map, bgc.X, bgc.Y, bgc.Width, bgc.Height, (this.Level.ExitX << 4) - b.X - 16, y - b.Y, bgc.Width, bgc.Height);
+        bgc = this.Background[13][3];
+        a.drawImage(Enjine.Resources.Images.map, bgc.X, bgc.Y, bgc.Width, bgc.Height, (this.Level.ExitX << 4) - b.X, y - b.Y, bgc.Width, bgc.Height);
+      }
+    }
+    DrawExit1(a, b) {
+      for (let y = this.Level.ExitY - 8; y < this.Level.ExitY; y++) {
+        let bgc = this.Background[13][y === this.Level.ExitY - 8 ? 4 : 5];
+        a.drawImage(Enjine.Resources.Images.map, bgc.X, bgc.Y, bgc.Width, bgc.Height, (this.Level.ExitX << 4) - b.X + 16, (y << 4) - b.Y, bgc.Width, bgc.Height);
+      }
+    };
+  },
+  LevelGenerator: class {
     constructor(width, height) {
       this.Width = width;
       this.Height = height;
@@ -1277,10 +1861,8 @@ Mario.LevelGenerator = (() => {
           }
         }
     }
-  }
-})();
-Mario.SpriteTemplate = (() => {
-  return class {
+  },
+  SpriteTemplate: class {
     constructor(type, winged) {
       this.Type = type;
       this.Winged = winged;
@@ -1297,276 +1879,9 @@ Mario.SpriteTemplate = (() => {
         a.AddSprite(this.Sprite);
       }
     }
-  }
-})();
-Mario.Enemy = (() => {
-  return class extends Mario.NotchSprite {
-    constructor(world, x, y, facing, type, winged) {
-      super();
-      this.AirInertia = this.GroundInertia = .89;
-      this.RunTime = 0;
-      this.MayJump = this.OnGround = !1;
-      this.YJumpSpeed = this.XJumpSpeed = this.JumpTime = 0;
-      this.Width = 4;
-      this.Height = 24;
-      this.DeadTime = 0;
-      this.FlyDeath = !1;
-      this.WingTime = 0;
-      this.NoFireballDeath = !1;
-      this.X = x;
-      this.Y = y;
-      this.World = world;
-      this.Type = type;
-      this.Winged = winged;
-      this.Image = Enjine.Resources.Images.enemies;
-      this.XPicO = 8;
-      this.YPicO = 31;
-      this.AvoidCliffs = this.Type === Mario.Enemy.RedKoopa;
-      this.NoFireballDeath = this.Type === Mario.Enemy.Spiky;
-      this.YPic = this.Type;
-      if (this.YPic > 1) this.Height = 12;
-      this.Facing = facing;
-      if (this.Facing === 0) this.Facing = 1;
-      this.PicWidth = 16;
-    }
-    CollideCheck() {
-      if (this.DeadTime === 0) {
-        let a = Mario.MarioCharacter.X - this.X, b = Mario.MarioCharacter.Y - this.Y;
-        if (a > -this.Width * 2 - 4 && a < this.Width * 2 + 4 && b > -this.Height && b < Mario.MarioCharacter.Height)
-          if (this.Type !== Mario.Enemy.Spiky && Mario.MarioCharacter.Ya > 0 && b <= 0 && (!Mario.MarioCharacter.OnGround || !Mario.MarioCharacter.WasOnGround))
-            if (Mario.MarioCharacter.Stomp(this), this.Winged) {
-              this.Winged = !1;
-              this.Ya = 0;
-            } else {
-              this.YPicO = 7;
-              this.PicHeight = 8;
-              if (this.SpriteTemplate !== null)
-                this.SpriteTemplate.IsDead = !0;
-              this.DeadTime = 10;
-              this.Winged = !1;
-              switch (this.Type) {
-                case Mario.Enemy.RedKoopa: this.World.AddSprite(new Mario.Shell(this.World, this.X, this.Y, 0)); break;
-                case this.Type === Mario.Enemy.GreenKoopa: this.World.AddSprite(new Mario.Shell(this.World, this.X, this.Y, 1)); break;
-              }
-            }
-          else
-            Mario.MarioCharacter.GetHurt();
-      }
-    }
-    Move() {
-      this.WingTime++;
-      if (this.DeadTime > 0) {
-        if (--this.DeadTime === 0) {
-          this.DeadTime = 1;
-          for (let a = 0; a < 8; a++)
-            this.World.AddSprite(new Mario.Sparkle(
-              this.World,
-              (this.X + Math.random() * 16 - 8 | 0) + 4,
-              (this.Y - Math.random() * 8 | 0) + 4,
-              Math.random() * 2 - 1,
-              Math.random() * -1,
-              0, 1, 5
-            ));
-          this.World.RemoveSprite(this);
-        }
-        if (this.FlyDeath) {
-          this.X += this.Xa;
-          this.Y += this.Ya;
-          this.Ya *= .95;
-          this.Ya += 1;
-        }
-      }
-      else {
-        if (this.Xa > 2)
-          this.Facing = 1;
-        if (this.Xa < -2)
-          this.Facing = -1;
-        this.Xa = this.Facing * 1.75;
-        this.MayJump = this.OnGround;
-        this.XFlip = this.Facing === -1;
-        this.RunTime += Math.abs(this.Xa) + 5;
-        let a = (this.RunTime / 20 | 0) % 2;
-        this.OnGround || (a = 1);
-        if (!this.SubMove(this.Xa, 0))
-          this.Facing *= -1;
-        this.OnGround = !1;
-        this.SubMove(0, this.Ya);
-        this.Ya *= this.Winged ? .95 : .85;
-        this.Xa *= this.OnGround ? this.GroundInertia : this.AirInertia;
-        if (this.OnGround) {
-          if (this.Winged)
-            this.Ya = -10;
-        }
-        else
-          this.Ya += this.Winged ? .6 : 2;
-        this.Winged && (a = (this.WingTime / 4 | 0) % 2);
-        this.XPic = a;
-      }
-    }
-    SubMove(a, b) {
-      let c = !1;
-      while (a > 8) {
-        if (!this.SubMove(8, 0)) return !1;
-        a -= 8;
-      }
-      while (a < -8) {
-        if (!this.SubMove(-8, 0)) return !1;
-        a += 8;
-      }
-      while (b > 8) {
-        if (!this.SubMove(0, 8)) return !1;
-        b -= 8;
-      }
-      while (b < -8) {
-        if (!this.SubMove(0, -8)) return !1;
-        b += 8;
-      }
-      let x = this.X + a;
-      let y = this.Y + b;
-      if (b > 0 && (
-        this.IsBlocking(x - this.Width, y, a, 0) ||
-        this.IsBlocking(x + this.Width, y, a, 0) ||
-        this.IsBlocking(x - this.Width, y + 1, a, b) ||
-        this.IsBlocking(x + this.Width, y + 1, a, b)
-      )) c = !0;
-      if (b < 0 && (
-        this.IsBlocking(x, y - this.Height, a, b) || c ||
-        this.IsBlocking(x - this.Width, y - this.Height, a, b) || c ||
-        this.IsBlocking(x + this.Width, y - this.Height, a, b)
-      )) c = !0;
-      if (a > 0 && (
-        this.IsBlocking(x + this.Width, y - this.Height, a, b) ||
-        this.IsBlocking(x + this.Width, y - (this.Height / 2 | 0), a, b) ||
-        this.IsBlocking(x + this.Width, y, a, b) ||
-        (this.AvoidCliffs && this.OnGround && !this.World.Level.IsBlocking((this.X + this.Xa + this.Width) / 16 | 0, this.Y / 16 + 1 | 0, this.Xa, 1))
-      )) c = !0;
-      if (a < 0 && (
-        this.IsBlocking(x - this.Width, y - this.Height, a, b) ||
-        this.IsBlocking(x - this.Width, y - (this.Height / 2 | 0), a, b) ||
-        this.IsBlocking(x - this.Width, y, a, b) ||
-        (this.AvoidCliffs && this.OnGround && !this.World.Level.IsBlocking((this.X + this.Xa - this.Width) / 16 | 0, this.Y / 16 + 1 | 0, this.Xa, 1))
-      )) c = !0;
-      if (c) {
-        if (a < 0) {
-          this.X = ((this.X - this.Width) / 16 | 0) * 16 + this.Width;
-          this.Xa = 0;
-        } if (a > 0) {
-          this.X = ((this.X + this.Width) / 16 + 1 | 0) * 16 - this.Width - 1;
-          this.Xa = 0;
-        } if (b < 0) {
-          this.Y = ((this.Y - this.Height) / 16 | 0) * 16 + this.Height;
-          this.Ya = this.JumpTime = 0;
-        } if (b > 0) {
-          this.Y = ((this.Y - 1) / 16 + 1 | 0) * 16 - 1;
-          this.OnGround = !0;
-        }
-        return !1;
-      } else {
-        this.X += a;
-        this.Y += b;
-        return !0;
-      }
-    }
-    IsBlocking(a, b, c, e) {
-      a = a / 16 | 0;
-      b = b / 16 | 0;
-      if (a === this.X / 16 | 0 && b === this.Y / 16 | 0)
-        return !1;
-      return this.World.Level.IsBlocking(a, b, c, e);
-    }
-    ShellCollideCheck(a) {
-      if (this.DeadTime !== 0)
-        return !1;
-      let b = a.X - this.X, c = a.Y - this.Y;
-      if (b > -16 && b < 16 && c > -this.Height && c < a.Height) {
-        Enjine.Resources.PlaySound("kick");
-        this.Xa = a.Facing * 2;
-        this.Ya = -5;
-        this.FlyDeath = !0;
-        if (this.SpriteTemplate !== null)
-          this.SpriteTemplate.IsDead = !0;
-        this.DeadTime = 100;
-        this.Winged = !1;
-        return this.YFlip = !0;
-      }
-      return !1;
-    }
-    FireballCollideCheck(a) {
-      if (this.DeadTime !== 0)
-        return !1;
-      let b = a.X - this.X, c = a.Y - this.Y;
-      if (b > -16 && b < 16 && c > -this.Height && c < a.Height) {
-        if (this.NoFireballDeath)
-          return !0;
-        Enjine.Resources.PlaySound("kick");
-        this.Xa = a.Facing * 2;
-        this.Ya = -5;
-        this.FlyDeath = !0;
-        if (this.SpriteTemplate !== null)
-          this.SpriteTemplate.IsDead = !0;
-        this.DeadTime = 100;
-        this.Winged = !1;
-        return this.YFlip = !0;
-      }
-    }
-    BumpCheck(a, b) {
-      if (this.DeadTime === 0 && this.X + this.Width > a * 16 && this.X - this.Width < a * 16 + 16 && b === (this.Y - 1) / 16 | 0) {
-        Enjine.Resources.PlaySound("kick");
-        this.Xa = -Mario.MarioCharacter.Facing * 2;
-        this.Ya = -5;
-        this.FlyDeath = !0;
-        if (this.SpriteTemplate !== null)
-          this.SpriteTemplate.IsDead = !0;
-        this.DeadTime = 100;
-        this.Winged = !1;
-        this.YFlip = !0;
-      }
-    }
-    SubDraw = super.Draw;
-    Draw(a, b) {
-      if (this.Winged) {
-        let c = (this.XOld + (this.X - this.XOld) * this.Delta | 0) - this.XPicO;
-        let e = (this.YOld + (this.Y - this.YOld) * this.Delta | 0) - this.YPicO;
-        if (this.Type !== Mario.Enemy.RedKoopa && this.Type !== Mario.Enemy.GreenKoopa) {
-          this.XFlip = !this.XFlip;
-          a.save();
-          a.scale(this.XFlip ? -1 : 1, this.YFlip ? -1 : 1);
-          a.translate(this.XFlip ? -320 : 0, this.YFlip ? -240 : 0);
-          a.drawImage(
-            this.Image,
-            (this.WingTime / 4 | 0) % 2 * 16,
-            128,
-            16,
-            32,
-            this.XFlip ? 320 - c - 24 : c - 8,
-            this.YFlip ? 240 - e - 32 : e - 8,
-            16,
-            32
-          );
-          a.restore();
-          this.XFlip = !this.XFlip;
-        }
-      }
-      this.SubDraw(a, b);
-      if (this.Winged) {
-        let c = (this.XOld + (this.X - this.XOld) * this.Delta | 0) - this.XPicO;
-        let e = (this.YOld + (this.Y - this.YOld) * this.Delta | 0) - this.YPicO;
-        a.save();
-        a.scale(this.XFlip ? -1 : 1, this.YFlip ? -1 : 1);
-        a.translate(this.XFlip ? -320 : 0, this.YFlip ? -240 : 0);
-        a.drawImage(this.Image, (this.WingTime / 4 | 0) % 2 * 16, 128, 16, 32, this.XFlip ? 320 - c - 24 : c - 8, this.YFlip ? 240 - e - (this.Type === Mario.Enemy.RedKoopa && this.Type === Mario.Enemy.GreenKoopa ? 0 : 32) : e - 8, 16, 32);
-        a.restore();
-      }
-    }
-    RedKoopa = 0;
-    GreenKoopa = 1;
-    Goomba = 2;
-    Spiky = 3;
-    Flower = 4;
-  }
-})();
-Mario.Fireball = (() => {
-  return class extends Mario.NotchSprite {
+  },
+  Enemy,
+  Fireball: class extends NotchSprite {
     constructor(a, b, c, e) {
       super();
       this.AirInertia = this.GroundInertia = .89;
@@ -1691,10 +2006,8 @@ Mario.Fireball = (() => {
       this.Ya = -5;
       this.DeadTime = 100;
     };
-  }
-})();
-Mario.Sparkle = (() => {
-  return class extends Mario.NotchSprite {
+  },
+  Sparkle: class  extends NotchSprite {
     constructor(world, x, y, xa, ya) {
       super();
       this.World = world;
@@ -1716,10 +2029,8 @@ Mario.Sparkle = (() => {
       this.X += this.Xa;
       this.Y += this.Ya;
     }
-  }
-})();
-Mario.CoinAnim = (() => {
-  return class extends Mario.NotchSprite {
+  },
+  CoinAnim: class extends NotchSprite {
     constructor(world, x, y) {
       super();
       this.World = world;
@@ -1750,10 +2061,8 @@ Mario.CoinAnim = (() => {
       this.Y += this.Ya;
       this.Ya += 1;
     }
-  }
-})();
-Mario.Mushroom = (() => {
-  return class extends Mario.NotchSprite {
+  },
+  Mushroom: class extends NotchSprite {
     constructor(world, x, y) {
       super();
       this.RunTime = 0;
@@ -1880,10 +2189,8 @@ Mario.Mushroom = (() => {
         this.Ya = -10;
       }
     }
-  }
-})();
-Mario.Particle = (() => {
-  return class extends Mario.NotchSprite {
+  },
+  Particle: class extends NotchSprite {
     constructor(world, x, y, Xa, Ya) {
       super();
       this.World = world;
@@ -1906,10 +2213,8 @@ Mario.Particle = (() => {
       this.Ya *= .95;
       this.Ya += 3;
     }
-  }
-})();
-Mario.FireFlower = (() => {
-  return class extends Mario.NotchSprite {
+  },
+  FireFlower: class extends NotchSprite {
     constructor(world, x, y) {
       super();
       this.Width = 4;
@@ -1941,10 +2246,8 @@ Mario.FireFlower = (() => {
         this.Life++;
       }
     }
-  }
-})();
-Mario.BulletBill = (() => {
-  return class extends Mario.NotchSprite {
+  },
+  BulletBill: class extends NotchSprite {
     constructor(world, x, y, facing) {
       super();
       this.Image = Enjine.Resources.Images.enemies;
@@ -2024,10 +2327,8 @@ Mario.BulletBill = (() => {
         return Enjine.Resources.PlaySound("kick"), this.Dead = !0, this.Xa = 0, this.Ya = 1, this.DeadTime = 100, !0;
       return !1;
     };
-  }
-})();
-Mario.FlowerEnemy = (() => {
-  return class extends Mario.Enemy {
+  },
+  FlowerEnemy: class extends Enemy {
     constructor(world, x, y) {
       super();
       this.Image = Enjine.Resources.Images.enemies;
@@ -2085,209 +2386,9 @@ Mario.FlowerEnemy = (() => {
         }
       }
     }
-  }
-})();
-Mario.Shell = (() => {
-  return class extends Mario.NotchSprite {
-    constructor(world, x, y, Ypic, Xpic = 4) {
-      super();
-      this.World = world;
-      this.X = x;
-      this.Y = y;
-      this.YPic = Ypic;
-      this.Image = Enjine.Resources.Images.enemies;
-      this.XPicO = 8;
-      this.YPicO = 31;
-      this.Width = 4;
-      this.Height = 12;
-      this.Facing = 0;
-      this.PicWidth = 16;
-      this.XPic = Xpic;
-      this.Ya = -5;
-      this.Dead = !1;
-      this.DeadTime = 0;
-      this.Carried = !1;
-      this.AirInertia = this.GroundInertia = .89;
-      this.OnGround = !1;
-      this.Anim = 0;
-    }
-    FireballCollideCheck(a) {
-      if (this.DeadTime !== 0)
-        return !1;
-      let x = a.X - this.X, y = a.Y - this.Y;
-      if (x > -16 && x < 16 && y > -this.Height && y < a.Height) {
-        if (this.Facing !== 0)
-          return !0;
-        Enjine.Resources.PlaySound("kick");
-        this.Xa = a.Facing * 2;
-        this.Ya = -5;
-        if (this.SpriteTemplate !== null)
-          this.SpriteTemplate.IsDead = !0;
-        this.DeadTime = 100;
-        return this.YFlip = !0;
-      } return !1;
-    }
-    CollideCheck() {
-      if (!this.Carried && !(this.Dead || this.DeadTime > 0)) {
-        let a = Mario.MarioCharacter.X - this.X, b = Mario.MarioCharacter.Y - this.Y;
-        if (a > -16 && a < 16 && b > -this.Height && b < Mario.MarioCharacter.Height) {
-          if (Mario.MarioCharacter.Ya > 0 && b <= 0 && (!Mario.MarioCharacter.OnGround || !Mario.MarioCharacter.WasOnGround)) {
-            Mario.MarioCharacter.Stomp(this);
-            if (this.Facing = this.Facing !== 0) this.Xa = 0;
-            else Mario.MarioCharacter.Facing;
-          } else if (this.Facing !== 0) {
-            Mario.MarioCharacter.GetHurt();
-          } else {
-            Mario.MarioCharacter.Kick(this);
-            this.Facing = Mario.MarioCharacter.Facing;
-          }
-        }
-      }
-    }
-    Move() {
-      if (this.Carried)
-        this.World.CheckShellCollide(this);
-      else if (this.DeadTime > 0) {
-        if (--this.DeadTime === 0) {
-          this.DeadTime = 1;
-          for (let n = 0; n < 8; n++)
-            this.World.AddSprite(new Mario.Sparkle((this.X + Math.random() * 16 - 8 | 0) + 4, (this.Y + Math.random() * 8 | 0) + 4, Math.random() * 2 - 1, Math.random() * -1, 0, 1, 5));
-          this.World.RemoveSprite(this);
-        }
-        this.X += this.Xa;
-        this.Y += this.Ya;
-        this.Ya *= .95;
-        this.Ya += 1;
-      }
-      else {
-        this.Facing !== 0 && this.Anim++;
-        if (this.Xa > 2)
-          this.Facing = 1;
-        if (this.Xa < -2)
-          this.Facing = -1;
-        this.Xa = this.Facing * 11;
-        this.Facing !== 0 && this.World.CheckShellCollide(this);
-        this.XFlip = this.Facing === -1;
-        this.XPic = (this.Anim / 2 | 0) % 4 + 3;
-        if (!this.SubMove(this.Xa, 0)) {
-          Enjine.Resources.PlaySound("bump");
-          this.Facing = -this.Facing;
-        }
-        this.OnGround = !1;
-        this.SubMove(0, this.Ya);
-        this.Ya *= .85;
-        this.Xa *= this.OnGround ? this.GroundInertia : this.AirInertia;
-        this.OnGround || (this.Ya += 2);
-      }
-    }
-    SubMove(a, b) {
-      let c = !1;
-      while (a > 8) {
-        if (!this.SubMove(8, 0)) return !1;
-        a -= 8;
-      }
-      while (a < -8) {
-        if (!this.SubMove(-8, 0)) return !1;
-        a += 8;
-      }
-      while (b > 8) {
-        if (!this.SubMove(0, 8)) return !1;
-        b -= 8;
-      }
-      while (b < -8) {
-        if (!this.SubMove(0, -8)) return !1;
-        b += 8;
-      }
-      let x = this.X + a;
-      let y = this.Y + b;
-      if (b > 0 && (
-        this.IsBlocking(x - this.Width, y + b, a, 0) ||
-        this.IsBlocking(x + this.Width, y + b, a, 0) ||
-        this.IsBlocking(x - this.Width, y + b + 1, a, b) ||
-        this.IsBlocking(x + this.Width, y + b + 1, a, b)
-      )) c = !0;
-      if (b < 0 && (
-        this.IsBlocking(x, y + b - this.Height, a, b) || c ||
-        this.IsBlocking(x - this.Width, y + b - this.Height, a, b) || c ||
-        this.IsBlocking(x + this.Width, y + b - this.Height, a, b)
-      )) c = !0;
-      if (a > 0 && (
-        this.IsBlocking(x + this.Width, y + b - this.Height, a, b) ||
-        this.IsBlocking(x + this.Width, y + b - (this.Height / 2 | 0), a, b) ||
-        this.IsBlocking(x + this.Width, y + b, a, b)
-      )) c = !0;
-      if (a < 0 && (
-        this.IsBlocking(x - this.Width, y + b - this.Height, a, b) ||
-        this.IsBlocking(x - this.Width, y + b - (this.Height / 2 | 0), a, b) ||
-        this.IsBlocking(x - this.Width, y + b, a, b)
-      )) c = !0;
-      if (c) {
-        if (a < 0) {
-          this.X = ((this.X - this.Width) / 16 | 0) * 16 + this.Width;
-          this.Xa = 0;
-        } else if (a > 0) {
-          this.X = ((this.X + this.Width) / 16 + 1 | 0) * 16 - this.Width - 1;
-          this.Xa = 0;
-        }
-        if (b < 0) {
-          this.Y = ((this.Y - this.Height) / 16 | 0) * 16 + this.Height;
-          this.Ya = 0;
-        } else if (b > 0) {
-          this.Y = ((this.Y - 1) / 16 + 1 | 0) * 16 - 1;
-          this.OnGround = !0;
-        }
-        return !1;
-      }
-      else {
-        this.X += a;
-        this.Y += b;
-        return !0;
-      }
-    }
-    IsBlocking(a, b, c, e) {
-      a = a / 16 | 0;
-      b = b / 16 | 0;
-      if (a === (this.X / 16 | 0) && b === (this.Y / 16 | 0))
-        return !1;
-      let d = this.World.Level.IsBlocking(a, b, c, e);
-      if (d && e === 0 && c !== 0) this.World.Bump(a, b, !0);
-      return d;
-    }
-    BumpCheck(a, b) {
-      if (this.X + this.Width > a * 16 && this.X - this.Width < a * 16 + 16 && b === ((this.Y - 1) / 16 | 0)) {
-        this.Facing = -Mario.MarioCharacter.Facing;
-        this.Ya = -10;
-      }
-    }
-    Die() {
-      this.Dead = !0;
-      this.Carried = !1;
-      this.Xa = -this.Facing * 2;
-      this.Ya = -5;
-      this.DeadTime = 100;
-    }
-    ShellCollideCheck(a) {
-      if (this.DeadTime !== 0)
-        return !1;
-      let x = a.X - this.X, y = a.Y - this.Y;
-      if (x > -16 && x < 16 && y > -this.Height && y < a.Height) {
-        Enjine.Resources.PlaySound("kick");
-        if (Mario.MarioCharacter.Carried === a || Mario.MarioCharacter.Carried === this)
-          Mario.MarioCharacter.Carried = null;
-        this.Die();
-        a.Die();
-        return !0;
-      } return !1;
-    }
-    Release() {
-      this.Carried = !1;
-      this.Facing = Mario.MarioCharacter.Facing;
-      this.X += this.Facing * 8;
-    }
-  }
-})();
-Mario.TitleState = (() => {
-  return class extends Enjine.GameState {
+  },
+  Shell,
+  TitleState: class extends GameState {
     constructor() {
       super();
     }
@@ -2336,10 +2437,8 @@ Mario.TitleState = (() => {
     CheckForChange(a) {
       Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.S) && a.ChangeState(Mario.GlobalMapState);
     };
-  }
-})();
-Mario.LoadingState = (() => {
-  return class extends Enjine.GameState {
+  },
+  LoadingState: class extends GameState {
     constructor() {
       super();
       this.Images = [];
@@ -2428,10 +2527,8 @@ Mario.LoadingState = (() => {
         title.ChangeState(new Mario.TitleState);
       }
     };
-  }
-})();
-Mario.LoseState = (() => {
-  return class extends Enjine.GameState {
+  },
+  LoseState: class extends GameState {
     constructor() {
       super();
       this.wasKeyDown = !1;
@@ -2471,10 +2568,8 @@ Mario.LoseState = (() => {
     CheckForChange(a) {
       if (this.wasKeyDown && !Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.S)) a.ChangeState(new Mario.TitleState);
     }
-  }
-})();
-Mario.WinState = (() => {
-  return class extends Enjine.GameState {
+  },
+  WinState: class extends GameState {
     constructor() {
       super();
       this.waitTime = 2;
@@ -2516,10 +2611,8 @@ Mario.WinState = (() => {
     CheckForChange(a) {
       this.waitTime <= 0 && this.wasKeyDown && !Enjine.KeyboardInput.IsKeyDown(Enjine.Keys.S) && a.ChangeState(new Mario.TitleState);
     };
-  }
-})();
-Mario.MapState = (() => {
-  return class extends Enjine.GameState {
+  },
+  MapState: class extends GameState {
     constructor() {
       super();
       this.camera = new Enjine.Camera;
@@ -2925,10 +3018,8 @@ Mario.MapState = (() => {
       if (this.WorldNumber === 8) a.ChangeState(new Mario.WinState);
       if (this.EnterLevel) a.ChangeState(new Mario.LevelState(this.LevelDifficulty, this.LevelType));
     }
-  }
-})();
-Mario.LevelState = (() => {
-  return class extends Enjine.GameState {
+  },
+  LevelState: class extends Enjine.GameState {
     constructor(difficulty, type) {
       super();
       this.LevelDifficulty = difficulty;
@@ -3183,5 +3274,5 @@ Mario.LevelState = (() => {
       if (this.GotoLoseState) a.ChangeState(new Mario.LoseState);
       else if (this.GotoMapState) a.ChangeState(Mario.GlobalMapState);
     };
-  }
-})();
+  },
+};
