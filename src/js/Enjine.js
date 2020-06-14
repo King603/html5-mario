@@ -1,28 +1,31 @@
+/** 画图功能 */
 class Drawable {
-  // 画图功能
   ZOrder = 0;
   Draw() { }
 }
-// 游戏状态
+/** 游戏状态 */
 class GameState {
-  // 进入
+  /** 进入 */
   Enter() { }
-  // 退出
+  /** 退出 */
   Exit() { }
-  // 更新
+  /** 更新 */
   Update() { }
-  // 布局
+  /** 布局 */
   Draw() { }
-  // 检查变化
+  /** 检查变化 */
   CheckForChange() { }
 }
-// 界面
+/** 界面 */
 class Camera {
   constructor() {
     this.Y = this.X = 0;
   }
 }
-
+/** 
+ * 利用精灵图设计各个部件元素
+ * 继承 Drawable 类
+ */
 class Sprite extends Drawable {
   constructor() {
     super();
@@ -38,7 +41,10 @@ class Sprite extends Drawable {
     ctx.drawImage(this.Image, this.X - camera.X, this.Y - camera.Y);
   }
 }
-
+/**
+ * 精灵图帧数设置
+ * 继承 Sprite 类
+ */
 class FrameSprite extends Sprite {
   constructor() {
     super();
@@ -64,10 +70,11 @@ class FrameSprite extends Sprite {
   }
 }
 
-let Enjine = {
+export let Enjine = {
   Keys: new Keyboard(),
   KeyboardInput: {
     Pressed: [],
+    /** 初始化 */
     Initialize() {
       document.onkeydown = event => this.KeyDownEvent(event);
       document.onkeyup = event => this.KeyUpEvent(event);
@@ -84,7 +91,7 @@ let Enjine = {
     },
     /**
      * 按键按下后启动的事件
-     * @param {Object} event 事件
+     * @param {KeyboardEvent} event 事件
      */
     KeyDownEvent(event) {
       this.Pressed[event.keyCode] = !0;
@@ -92,7 +99,7 @@ let Enjine = {
     },
     /**
      * 按键脱离后启动的事件
-     * @param {Object} event 事件
+     * @param {KeyboardEvent} event 事件
      */
     KeyUpEvent(event) {
       this.Pressed[event.keyCode] = !1;
@@ -100,7 +107,7 @@ let Enjine = {
     },
     /**
      * 防止滚动
-     * @param {Object} event 事件
+     * @param {KeyboardEvent} event 事件
      */
     PreventScrolling(event) {
       // 按下方向键后启动事件的preventDefault方法
@@ -133,7 +140,7 @@ let Enjine = {
     },
     /**
      * 添加图片组
-     * @param {Array} images 图片组
+     * @param {Image[]} images 图片组
      * @returns {Element}
      */
     AddImages(images) {
@@ -165,15 +172,15 @@ let Enjine = {
     /**
      * 添加声音
      * @param {String} key 属性
-     * @param {String} href 声音路径
-     * @param {Number} num 个数
+     * @param {String} src 声音路径
+     * @param {Number} [num = 3] 个数
      * @returns {Element}
      */
-    AddSound(key, href, num = 3) {
+    AddSound(key, src, num = 3) {
       this.Sounds[key] = [];
       this.Sounds[key].index = 0;
       for (let i = 0; i < num; i++)
-        this.Sounds[key][i] = new Audio(href);
+        this.Sounds[key][i] = new Audio(src);
       return this;
     },
     /**
@@ -210,7 +217,7 @@ let Enjine = {
     /**
      * 暂停通道
      * @param {String} x 属性对象
-     * @param {String} y 属性
+     * @param {Number} y 属性
      * @returns {Element}
      */
     PauseChannel(x, y) {
@@ -230,7 +237,7 @@ let Enjine = {
     /**
      * 重置通道
      * @param {String} x 属性对象
-     * @param {String} y 属性
+     * @param {Number} y 属性
      * @returns {Element}
      */
     ResetChannel(x, y) {
@@ -258,7 +265,7 @@ let Enjine = {
     StopLoop(x, y) {
       this.Sounds[x][y].removeEventListener("ended", this.LoopCallback, !1);
     },
-    // 循环函数
+    /** 循环函数 */
     LoopCallback() {
       this.currentTime = -1;
       this.play();
@@ -267,23 +274,23 @@ let Enjine = {
   GameCanvas: class {// 游戏画布
     /**
      * 初始化
-     * @param {String} id 画布ID
+     * @param {String} elementId 画布ID
      * @param {Number} width 画布宽度
      * @param {Number} height 画布高度
      */
-    Initialize(id, width, height) {
-      this.Context2D = (this.Canvas = document.getElementById(id)).getContext("2d");
+    Initialize(elementId, width, height) {
+      this.Context2D = (this.Canvas = document.getElementById(elementId)).getContext("2d");
       this.BackBuffer = document.createElement("canvas");
       this.BackBuffer.width = width;
       this.BackBuffer.height = height;
       this.BackBufferContext2D = this.BackBuffer.getContext("2d");
     }
-    // 布局界面
+    /** 布局界面 */
     BeginDraw() {
       this.BackBufferContext2D.clearRect(0, 0, this.BackBuffer.width, this.BackBuffer.height);
       this.Context2D.clearRect(0, 0, this.Canvas.width, this.Canvas.height);
     }
-    // 结束布局
+    /** 结束布局 */
     EndDraw() {
       this.Context2D.drawImage(this.BackBuffer, 0, 0, this.BackBuffer.width, this.BackBuffer.height, 0, 0, this.Canvas.width, this.Canvas.height);
     }
@@ -302,7 +309,7 @@ let Enjine = {
     }
     /**
      * 改变状态
-     * @param {Object} state 状态
+     * @param {GameState} state 状态
      */
     ChangeState(state) {
       this.State != null && this.State.Exit();
@@ -311,7 +318,7 @@ let Enjine = {
     }
     /**
      * 更新
-     * @param {Object} state 状态
+     * @param {GameState} state 状态
      */
     Update(state) {
       this.State.CheckForChange(this);
@@ -319,7 +326,7 @@ let Enjine = {
     }
     /**
      * 画图
-     * @param {Object} state 状态
+     * @param {GameState} state 状态
      */
     Draw(state) {
       this.State.Draw(state);
@@ -330,12 +337,12 @@ let Enjine = {
     FramesPerSecond = 1E3 / 30;
     LastTime = 0;
     UpdateObject = null;
-    // 开始
+    /** 开始 */
     Start() {
       this.LastTime = new Date().getTime();
       this.IntervalFunc = setInterval(() => this.Tick(), this.FramesPerSecond);
     }
-    // 记号
+    /** 记号 */
     Tick() {
       if (this.UpdateObject != null) {
         let date = new Date().getTime();
@@ -343,7 +350,7 @@ let Enjine = {
         this.UpdateObject.Update((date - this.LastTime) / 1E3);
       }
     }
-    // 停止
+    /** 停止 */
     Stop() {
       clearInterval(this.IntervalFunc);
     }
@@ -368,7 +375,7 @@ let Enjine = {
       this.Objects = this.Objects.concat(element);
       this.Unsorted = !0;
     }
-    // 清除
+    /** 清除 */
     Clear() {
       this.Objects.splice(0, this.Objects.length);
     }
@@ -406,7 +413,7 @@ let Enjine = {
     }
     /**
      * 移除列表
-     * @param {Array} arr 
+     * @param {[]} arr 
      * @returns 
      */
     RemoveList(arr) {
@@ -427,9 +434,9 @@ let Enjine = {
     Update(element) {
       this.Objects.forEach(
         /**
-         * @param {GameState} Obj
+         * @param {GameState} state
          */
-        Obj => Obj.Update && Obj.Update(element)
+        state => state.Update && state.Update(element)
       );
     }
     // 布局
@@ -458,11 +465,11 @@ let Enjine = {
   SpriteFont: class extends Drawable {
     /**
      * 精灵图字体
-     * @param {Array} str 
+     * @param {String[]} str 
      * @param {Element} image 
      * @param {Number} width 
      * @param {Number} height 
-     * @param {Array} Letters 
+     * @param {String[]} Letters 
      */
     constructor(str, image, width, height, Letters) {
       super();
@@ -503,10 +510,10 @@ let Enjine = {
   AnimationSequence: class {
     /**
      * 动画序列
-     * @param {Number} startRow 
-     * @param {Number} startCol 
-     * @param {Number} endRow 
-     * @param {Number} endCol 
+     * @param {Number} startRow 行的起始位置
+     * @param {Number} startCol 列的起始位置
+     * @param {Number} endRow 行的末尾
+     * @param {Number} endCol 列的末尾
      */
     constructor(startRow, startCol, endRow, endCol) {
       this.StartRow = startRow;
