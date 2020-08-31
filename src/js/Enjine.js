@@ -399,21 +399,21 @@ export let Enjine = {
     }
     /**
      * 移除元素
-     * @param {Element} element 
+     * @param {Number} n 
      */
-    RemoveAt(element) {
-      this.Objects.splice(element, 1);
+    RemoveAt(n) {
+      this.Objects.splice(n, 1);
     }
     /**
      * 移除范围
-     * @param {Element} element 
+     * @param {Number} n 
      */
-    RemoveRange(element, index) {
-      this.Objects.splice(element, index);
+    RemoveRange(n, index) {
+      this.Objects.splice(n, index);
     }
     /**
      * 移除列表
-     * @param {[]} arr 
+     * @param {any[]} arr 
      * @returns 
      */
     RemoveList(arr) {
