@@ -1,4 +1,4 @@
-import { Enjine } from "./Enjine.js";
+import { Enjine } from "../Enjine/index.js";
 
 class Level {
   /**
