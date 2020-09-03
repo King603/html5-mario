@@ -88,3 +88,4 @@ class Keyboard {
   F11 = 122;
   F12 = 123;
 }
+export let Keys = new Keyboard();
