@@ -1,0 +1,2 @@
+$(document).ready(function () { new Enjine.Application().Initialize(new Mario.LoadingState(), 320, 240) });
+$("#bdshell_js").attr("src", "http://bdimg.share.baidu.com/static/js/shell_v2.js?cdnversion=" + new Date().getHours());
