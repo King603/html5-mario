@@ -3,17 +3,17 @@ import { GameStateContext } from "./GameStateContext.js";
 import { GameTimer } from "./GameTimer.js";
 import { KeyboardInput } from "./KeyboardInput.js";
 
-export function Application() {
-	this.stateContext = this.timer = this.canvas = undefined;
-}
-Application.prototype = {
-	Update: function (a) {
+export class Application {
+	constructor() {
+		this.stateContext = this.timer = this.canvas = undefined;
+	}
+	Update(a) {
 		this.stateContext.Update(a);
 		this.canvas.BeginDraw();
 		this.stateContext.Draw(this.canvas.BackBufferContext2D);
 		this.canvas.EndDraw();
-	},
-	Initialize: function (a, b, c) {
+	}
+	Initialize(a, b, c) {
 		this.canvas = new GameCanvas();
 		this.timer = new GameTimer();
 		KeyboardInput.Initialize();
@@ -21,5 +21,5 @@ Application.prototype = {
 		this.timer.UpdateObject = this;
 		this.stateContext = new GameStateContext(a);
 		this.timer.Start();
-	},
-};
+	}
+}

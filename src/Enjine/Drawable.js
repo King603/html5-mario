@@ -1,5 +1,6 @@
-export function Drawable() {
-	this.ZOrder = 0;
+export class Drawable {
+	constructor() {
+		this.ZOrder = 0;
+	}
+	Draw() { }
 }
-
-Drawable.prototype = { Draw: function () { } };
