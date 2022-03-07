@@ -1,9 +1,9 @@
-import { GameCanvas } from "./GameCanvas.js";
-import { GameStateContext } from "./GameStateContext.js";
-import { GameTimer } from "./GameTimer.js";
-import { KeyboardInput } from "./KeyboardInput.js";
+import GameCanvas from "./GameCanvas.js";
+import GameStateContext from "./GameStateContext.js";
+import GameTimer from "./GameTimer.js";
+import KeyboardInput from "./KeyboardInput.js";
 
-export class Application {
+export default class {
 	constructor() {
 		this.stateContext = this.timer = this.canvas = undefined;
 	}

@@ -1,9 +1,9 @@
-export const Resources = {
+export default {
 	/**@type {{[key: string]: HTMLImageElement}} */
 	Images: {},
 	/**@type {{[key: string]: HTMLAudioElement[]}} */
 	Sounds: {},
-	Destroy: function () {
+	Destroy() {
 		delete this.Images;
 		delete this.Sounds;
 		return this;
@@ -13,7 +13,7 @@ export const Resources = {
 	 * @param {{ name: string; src: string; }}
 	 * @returns
 	 */
-	AddImage: function ({ name, src }) {
+	AddImage({ name, src }) {
 		this.Images[name] = new Image();
 		this.Images[name].src = src;
 		return this;
@@ -23,11 +23,11 @@ export const Resources = {
 	 * @param {{ name: string; src: string; }[]} imgs
 	 * @returns
 	 */
-	AddImages: function (imgs) {
+	AddImages(imgs) {
 		imgs.forEach(img => this.AddImage(img));
 		return this;
 	},
-	ClearImages: function () {
+	ClearImages() {
 		this.Images = {};
 		return this;
 	},
@@ -36,18 +36,18 @@ export const Resources = {
 	 * @param {string} name
 	 * @returns
 	 */
-	RemoveImage: function (name) {
+	RemoveImage(name) {
 		delete this.Images[name];
 		return this;
 	},
-	AddSound: function (name, src, count = 3) {
+	AddSound(name, src, count = 3) {
 		let sounds = this.Sounds[name] = [];
 		sounds.index = 0;
 		for (let i = 0; i < count; i++)
 			sounds[i] = new Audio(src);
 		return this;
 	},
-	ClearSounds: function () {
+	ClearSounds() {
 		this.Sounds = {};
 		return this;
 	},
@@ -56,7 +56,7 @@ export const Resources = {
 	 * @param {string} name
 	 * @returns
 	 */
-	RemoveSound: function (name) {
+	RemoveSound(name) {
 		delete this.Sounds[name];
 		return this;
 	},
@@ -66,7 +66,7 @@ export const Resources = {
 	 * @param {boolean} bool
 	 * @returns
 	 */
-	PlaySound: function (name, bool) {
+	PlaySound(name, bool) {
 		let sounds = this.Sounds[name];
 		if (sounds.index >= sounds.length)
 			sounds.index = 0;
@@ -82,7 +82,7 @@ export const Resources = {
 	 * @param {number} i
 	 * @returns
 	 */
-	PauseChannel: function (name, i) {
+	PauseChannel(name, i) {
 		let sound = this.Sounds[name][i];
 		sound.paused || sound.pause();
 		return this;
@@ -92,7 +92,7 @@ export const Resources = {
 	 * @param {string} name
 	 * @returns
 	 */
-	PauseSound: function (name) {
+	PauseSound(name) {
 		this.Sounds[name].forEach((sound) => sound.paused || sound.pause());
 		return this;
 	},
@@ -102,7 +102,7 @@ export const Resources = {
 	 * @param {number} i
 	 * @returns
 	 */
-	ResetChannel: function (name, i) {
+	ResetChannel(name, i) {
 		this.Sounds[name][i].currentTime = 0;
 		this.StopLoop(name, i);
 		return this;
@@ -112,7 +112,7 @@ export const Resources = {
 	 * @param {string} name
 	 * @returns
 	 */
-	ResetSound: function (name) {
+	ResetSound(name) {
 		for (let i in this.Sounds[name]) {
 			+i == NaN || this.ResetChannel(name, +i);
 		}
@@ -123,10 +123,10 @@ export const Resources = {
 	 * @param {string} name
 	 * @param {number} i
 	 */
-	StopLoop: function (name, i) {
+	StopLoop(name, i) {
 		this.Sounds[name][i].removeEventListener("ended", this.LoopCallback);
 	},
-	LoopCallback: function () {
+	LoopCallback() {
 		this.currentTime = -1;
 		this.play();
 	},

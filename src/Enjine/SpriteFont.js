@@ -1,13 +1,17 @@
-import { Drawable } from "./Drawable.js";
+import * as Enjine from "../Enjine/index.js";
+import Drawable from "./Drawable.js";
 
-export class SpriteFont extends Drawable {
-	constructor(Strings, Image, LetterWidth, LetterHeight, Letters) {
+export default class extends Drawable {
+	/**
+	 * 
+	 * @param {{Strings?: { String: string; X: number; Y: number; }[]; Image?: HTMLImageElement; LetterWidth?: number; LetterHeight?: number; Letters: { X: number; Y: number; }[]; }}  
+	 */
+	constructor({ Strings = [], Image = Enjine.Resources.Images.font, LetterWidth = 8, LetterHeight = 8, Letters }) {
 		super();
 		this.Image = Image;
 		this.Letters = Letters;
 		this.LetterWidth = LetterWidth;
 		this.LetterHeight = LetterHeight;
-		/**@type {{String: string; X: number; Y: number;}[]} */
 		this.Strings = Strings;
 	}
 	Draw(ctx) {

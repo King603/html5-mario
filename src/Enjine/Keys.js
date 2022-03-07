@@ -1,4 +1,4 @@
-export const Keys = {
+export default {
 	A: 65,
 	B: 66,
 	C: 67,

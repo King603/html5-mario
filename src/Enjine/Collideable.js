@@ -1,4 +1,4 @@
-export class Collideable {
+export default class {
 	constructor(base, w, h, d) {
 		this.Base = base;
 		this.X = base.X;

@@ -1,4 +1,4 @@
-export class AnimationSequence {
+export default class {
 	constructor(startRow, startCol, endRow, endCol) {
 		this.StartRow = startRow;
 		this.StartColumn = startCol;

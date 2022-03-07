@@ -1,4 +1,4 @@
-export class GameStateContext {
+export default class {
 	constructor(a) {
 		this.State = undefined;
 		if (a != undefined) {

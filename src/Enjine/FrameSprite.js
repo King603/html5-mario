@@ -1,6 +1,6 @@
-import { Sprite } from "./Sprite.js";
+import Sprite from "./Sprite.js";
 
-export class FrameSprite extends Sprite {
+export default class extends Sprite {
 	constructor() {
 		super();
 		this.FrameHeight = this.FrameWidth = this.FrameY = this.FrameX = 0;

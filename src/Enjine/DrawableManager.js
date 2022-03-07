@@ -1,4 +1,4 @@
-export class DrawableManager {
+export default class {
 	constructor() {
 		this.Unsorted = !0;
 		this.Objects = [];

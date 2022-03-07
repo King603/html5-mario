@@ -1,4 +1,4 @@
-export class GameTimer {
+export default class {
 	constructor() {
 		this.FramesPerSecond = 1e3 / 30;
 		this.LastTime = 0;

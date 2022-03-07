@@ -1,7 +1,7 @@
-import { AnimationSequence } from "./AnimationSequence.js";
-import { FrameSprite } from "./FrameSprite.js";
+import AnimationSequence from "./AnimationSequence.js";
+import FrameSprite from "./FrameSprite.js";
 
-export class AnimatedSprite extends FrameSprite {
+export default class extends FrameSprite {
 	constructor() {
 		super();
 		this.LastElapsed = 0;

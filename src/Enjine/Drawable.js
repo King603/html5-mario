@@ -1,4 +1,4 @@
-export class Drawable {
+export default class {
 	constructor() {
 		this.ZOrder = 0;
 	}

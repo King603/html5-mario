@@ -1,7 +1,7 @@
-export const KeyboardInput = {
+export default {
 	/**@type {boolean[]} */
 	Pressed: [],
-	Initialize: function () {
+	Initialize() {
 		document.onkeydown = (e) => this.KeyDownEvent(e);
 		document.onkeyup = (e) => this.KeyUpEvent(e);
 	},
@@ -10,14 +10,14 @@ export const KeyboardInput = {
 	 * @param {number} i
 	 * @returns
 	 */
-	IsKeyDown: function (i) {
+	IsKeyDown(i) {
 		return this.Pressed[i] || !1;
 	},
 	/**
 	 *
 	 * @param {KeyboardEvent} e
 	 */
-	KeyDownEvent: function (e) {
+	KeyDownEvent(e) {
 		this.Pressed[e.keyCode] = !0;
 		this.PreventScrolling(e);
 	},
@@ -25,7 +25,7 @@ export const KeyboardInput = {
 	 *
 	 * @param {KeyboardEvent} e
 	 */
-	KeyUpEvent: function (e) {
+	KeyUpEvent(e) {
 		this.Pressed[e.keyCode] = !1;
 		this.PreventScrolling(e);
 	},
@@ -33,7 +33,7 @@ export const KeyboardInput = {
 	 *
 	 * @param {KeyboardEvent} e
 	 */
-	PreventScrolling: function (e) {
+	PreventScrolling(e) {
 		e.keyCode >= 37 && e.keyCode <= 40 && e.preventDefault();
 	},
 };

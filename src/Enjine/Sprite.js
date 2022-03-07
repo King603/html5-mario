@@ -1,6 +1,6 @@
-import { Drawable } from "./Drawable.js";
+import Drawable from "./Drawable.js";
 
-export class Sprite extends Drawable {
+export default class extends Drawable {
 	constructor() {
 		super();
 		this.Y = this.X = 0;

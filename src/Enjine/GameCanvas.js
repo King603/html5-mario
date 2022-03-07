@@ -1,4 +1,4 @@
-export class GameCanvas {
+export default class {
 	constructor() {
 		/**@type {CanvasRenderingContext2D} */
 		this.BackBufferContext2D = undefined;

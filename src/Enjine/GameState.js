@@ -1,4 +1,4 @@
-export class GameState {
+export default class {
 	constructor() { }
 	Enter() { }
 	Exit() { }
