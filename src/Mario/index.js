@@ -61,7 +61,7 @@ export default new class {
 	MapState = MapState;
 	LevelState = LevelState;
 	/**@type {Character} */
-	MarioCharacter = null;
+	MarioCharacter = undefined;
 	/**@type {MapState} */
-	GlobalMapState = null;
+	GlobalMapState = undefined;
 }();
